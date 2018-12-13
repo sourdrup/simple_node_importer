@@ -1,0 +1,248 @@
+<?php
+
+/**
+ * @file
+ * File will contain all helper functions.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function simple_node_importer_install() {
+  //node_types_rebuild();
+  // Add custom fields.
+  foreach (simple_node_importer_type_installed_fields() as $field) {
+    // @FIXME
+// Fields and field instances are now exportable configuration entities, and
+// the Field Info API has been removed.
+// 
+// 
+// @see https://www.drupal.org/node/2012896
+// field_create_field($field);
+
+  }
+  foreach (simple_node_importer_type_installed_instances() as $fieldinstance) {
+    $fieldinstance['entity_type'] = 'node';
+    $fieldinstance['bundle'] = 'simple_node';
+    // @FIXME
+// Fields and field instances are now exportable configuration entities, and
+// the Field Info API has been removed.
+// 
+// 
+// @see https://www.drupal.org/node/2012896
+// field_create_instance($fieldinstance);
+
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simple_node_importer_uninstall() {
+  $ournewtype = 'simple_node';
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => $ournewtype));
+  $nodeids = array();
+  foreach ($result as $row) {
+    $nodeids[] = $row->nid;
+  }
+  /*if (!empty($nodeids)) {
+    node_delete_multiple($nodeids);
+    node_type_delete($ournewtype);
+  }
+  else {
+    node_type_delete($ournewtype);
+  }*/
+
+  $table = 'node_resolution';
+  if (db_table_exists($table)) {
+    db_drop_table($table);
+  }
+}
+
+/**
+ * Implements install custom fields().
+ */
+function simple_node_importer_type_installed_fields() {
+  $t = 't';
+  $content_types = array();
+  // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// $content_types = variable_get('content_type_select');
+
+  // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// return array(
+//     'field_content_type' => array(
+//       'field_name' => 'field_content_type',
+//       'cardinality' => 1,
+//       'locked' => TRUE,
+//       'type' => 'list_text',
+//       'required' => TRUE,
+//       'settings' => array(
+//         'label' => $t('Select Content Type'),
+//         'no_ui' => TRUE,
+//         'allowed_values' => $content_types,
+//         'allowed_values_function' => variable_get('content_type_select'),
+//         'default_widget' => 'options_select',
+//         'default_formatter' => 'list_default',
+//       ),
+//     ),
+//     'field_upload_csv' => array(
+//       'field_name' => 'field_upload_csv',
+//       'cardinality' => 1,
+//       'locked' => TRUE,
+//       'type' => 'file',
+//       'required' => TRUE,
+//       'settings' => array(
+//         'label' => $t('Upload File'),
+//         'no_ui' => TRUE,
+//         // 'uri_scheme' => variable_get('file_default_scheme', 'public/csv'),.
+//         'default_widget' => 'file_generic',
+//         'default_formatter' => 'file_default',
+//         'instance_settings' => array(
+//   // File extensions (separated by a comma?).
+//           'file_extensions' => 'csv',
+//   // Directory (within files/ ?).
+//           'file_directory'  => 'public/csv',
+//   // Label.
+//           'label' => t('Upload CSV'),
+//           'description' => t('Upload CSV File'),
+//         ),
+//       ),
+//     ),
+//   );
+
+}
+
+/**
+ * Implements install custom instances().
+ */
+function simple_node_importer_type_installed_instances() {
+  $t = 't';
+  $content_types = array();
+  // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// $content_types = variable_get('content_type_select');
+
+  // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// return array(
+//     'field_content_type' => array(
+//       'field_name' => 'field_content_type',
+//       'label' => $t('Select Content Type'),
+//       'cardinality' => 1,
+//       'locked' => TRUE,
+//       'type' => 'list_text',
+//       'required' => TRUE,
+//       'settings' => array(
+//         'label' => $t('Select Content Type'),
+//         'no_ui' => TRUE,
+//         'allowed_values' => $content_types,
+//         'allowed_values_function' => variable_get('content_type_select'),
+//         'default_widget' => 'options_select',
+//         'default_formatter' => 'list_default',
+//       ),
+//     ),
+//     'field_upload_csv' => array(
+//       'field_name' => 'field_upload_csv',
+//       'label' => $t('Upload CSV'),
+//       'cardinality' => 1,
+//       'locked' => TRUE,
+//       'type' => 'file',
+//       'required' => TRUE,
+//       'widget' => array(
+//         'type' => 'file_generic',
+//       ),
+//       'settings' => array(
+//         'file_directory' => 'public/csv',
+//         'file_extensions' => 'csv',
+//         'max_filesize' => '20MB',
+//         'title_field' => '',
+//       ),
+//     ),
+//   );
+
+}
+
+/**
+ * Implements hook_schema().
+ */
+function simple_node_importer_schema() {
+  $schema = array();
+  $table = 'node_resolution';
+  if (!db_table_exists($table)) {
+    $schema['node_resolution'] = array(
+      'description' => 'The base table for saving rows which fails while importing Nodes.',
+      'fields' => array(
+        'serid' => array(
+          'description' => 'The primary identifier for a node resolution.',
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        // Defaults to NULL in order to avoid a brief period of potential
+        // deadlocks on the index.
+        'sni_nid' => array(
+          'description' => 'The primary identifier for a simple node importer.',
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        'data' => array(
+          'description' => 'A serialized array of function names called to load an object corresponding',
+          'type' => 'blob',
+          'not null' => FALSE,
+          'size' => 'big',
+          'serialize' => TRUE,
+          'translatable' => TRUE,
+        ),
+        'reference' => array(
+          'description' => 'It will be a reference to uploaded file',
+          'type' => 'varchar',
+          'length' => 128,
+          'not null' => TRUE,
+          'default' => '',
+        ),
+        'status' => array(
+          'type' => 'varchar',
+          'not null' => TRUE,
+          'default' => 0,
+          'length' => 50,
+          'description' => 'It contains serialize data of suuccess and failure data.',
+        ),
+        'created' => array(
+          'description' => 'The Unix timestamp when the node was created.',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+        'changed' => array(
+          'description' => 'The Unix timestamp when the node was most recently saved.',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ),
+      ),
+      'unique keys' => array(
+        'serid' => array('serid'),
+      ),
+      'foreign keys' => array(
+        'node_import' => array(
+          'table' => 'node',
+          'columns' => array('sni_nid' => 'nid'),
+        ),
+      ),
+      'primary key' => array('serid'),
+    );
+  }
+  return $schema;
+}

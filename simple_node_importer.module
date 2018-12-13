@@ -1,0 +1,655 @@
+<?php
+
+/**
+ * @file
+ * Render Simple node importing.
+ */
+
+/**
+ * Include .inc files as necessary.
+ */
+require_once drupal_get_path('module', 'simple_node_importer') . '/includes/simple_node_importer.inc';
+require_once drupal_get_path('module', 'simple_node_importer') . '/includes/simple_node_importer_config.inc';
+require_once drupal_get_path('module', 'simple_node_importer') . '/includes/resolution_center.inc';
+
+/**
+ * Implements hook_help().
+ *
+ * Displays help and module information.
+ */
+function simple_node_importer_help($path, $arg) {
+  global $base_url;
+  $type = 'module';
+  $module = 'simple_node_importer';
+  $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/thumbnail.png';
+  $output = '';
+  switch ($path) {
+    case 'admin/help#simple_node_importer':
+      // code...
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Simple Node Importer is a simple module which imports nodes using CSV files. It provides the functionality for mapping UI to map CSV columns to it\'s corresponding entity field. For more information, see the online handbook entry for <a href="@simplenodeimporter">Simple Node Importer module</a>.', array('@simplenodeimporter' => \Drupal\Core\Url::fromUri('https://www.drupal.org/sandbox/sourdrup/2828039'))) . '</p>';
+      $output .= '<h3>' . t('How to Use') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><strong>' . t('Enabling module') . '</strong></dt>';
+      $output .= '<dd>' . t('This module get install in the same manner as other module does. You need to download it and save it into "sites/all/modules" directory and enable it from the "admin/modules" page.') . '</dd>';
+      $output .= '<dt><strong>' . t('Start working with Simple Node Importer') . '</strong></dt>';
+      // @FIXME
+// url() expects a route name or an external URI.
+// $output .= '<dd>' . t('After module gets enabled, admin has to visit either <a href="@admin-sni-settings"><em>Simple Node Importer</em></a> settings page or <a href="@add-simple-node-importer"><em>Add Simple Node Importer</em></a> page to select the content types which are available for content importing from the list of Content types available in the Drupal site. On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Content type settings"</em></strong>, admin can select content types, admin want to allow for import.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'), '@add-simple-node-importer' => url('node/add/simple-node'))) . '</dd>';
+
+      // @FIXME
+// url() expects a route name or an external URI.
+// $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Taxonomy term settings"</em></strong>, admin can uncheck the checkbox to disallow adding new taxonomy terms to the vocabulary, default it is checked to allow.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
+
+      // @FIXME
+// url() expects a route name or an external URI.
+// $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Node remove settings"</em></strong>, admin can admin can delete all the nodes of <em>"Simple Node Importer"</em> content type.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
+
+      $output .= '<dt><strong>' . t('Importing with Simple Node Importer') . '</strong></dt>';
+      $output .= '<dd><ul><li>' . t('Visit <a href="@add-simple-node-importer">Add Simple Node Importer</a> allows user to select content type, select content type.', array('@add-simple-node-importer' => \Drupal\Core\Url::fromRoute('node.add'))) . '</li><li>' . t('As user selects content type, an information box will appear having all the details of mandatory fields and multi valued fields, which helps user to prepare CSV accordingly.') . '</li><li>' . t('On select of content type, user will be able to download sample CSV file having all the field name as column headers, it is not mandatory at all to use sample downloaded CSV, user can use custom CSV too.') . '</li><li>' . t('If user uploads custom CSV, then user need to select or map the correct column to correct field name on very next step otherwise mapping appears pre-selected.') . '</li><li>' . t('Multiple values for multi valued fileds must be in separate columns and all columns should be selected on mapping page to the respective field.') . '</li><li>' . t('Once mapping is done, user can start import, clicking on Import button.') . '</li><li>' . t('Importing started and once completed you will redirect to Status page.') . '</li></ul></dd>';
+      $output .= '<dt>' . t('Resolution Center') . '</dt>';
+      $output .= '<dd>' . t('If any records fails to import, you will get a link <a href"@resolution-center"><em>Resolution Center</em></a> on import status page, where user can view, download and delete the failed records.', array('@resolution-center' => 'nodeimporter/node/%node/download-csv')) . '</dd>';
+      $output .= '<dt>' . t('Demo') . '</dt>';
+      $output .= '<dd>' . t('Still need demo?, you can visit: <br/><br/> <a href="@demo" target="_blank"><img src="@thumbnail" alt="demo" width="15%" ></a>', array('@demo' => 'https://youtu.be/331_aDapzrM', '@thumbnail' => $filepath)) . '</dd>';
+      $output .= '<dt>' . t('User permissions') . '</dt>';
+      $output .= '<dd>' . t('Visit <a href="@permissions">permissions page</a>.', array('@permissions' => \Drupal\Core\Url::fromRoute('user.admin_permissions'))) . '</dd>';
+      $output .= '</dl>';
+      break;
+
+    default:
+      // code...
+      break;
+  }
+  return $output;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function simple_node_importer_menu() {
+  $items = array();
+  $items['admin/config/development/snodeimport'] = array(
+    'title' => 'Simple Node Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simple_node_importer_config_form'),
+    'access arguments' => array('admin access simple_node_importer'),
+  );
+  $items['nodeimport/%/%node/mapping'] = array(
+    'title callback' => 'simple_node_importer_mapping_title',
+    'title arguments' => array(1, 2),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simple_node_importer_mapping_form', 1, 2),
+    'access arguments' => array('admin access simple_node_importer'),
+  );
+  $items['nodeimport/%/%node/importing'] = array(
+    'title' => 'Mappings Import',
+    'page callback' => 'simple_node_importer_create_mapping_fields',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('admin access simple_node_importer'),
+  );
+  $items['simplenode/%/%node/delete'] = array(
+    'title' => 'Confirm Delete',
+    'page callback' => 'simple_node_importer_delete_node',
+    'page arguments' => array(1, 2),
+    'access arguments' => array('admin access simple_node_importer'),
+  );
+  $items['admin/config/development/snodeimport/resolution-center'] = array(
+    'title' => 'Resolution Center',
+    'page callback' => 'simple_node_importer_node_resolution_center',
+    'access arguments' => array('admin access simple_node_importer'),
+    'file' => 'includes/resolution_center.inc',
+  );
+  $items['nodeimporter/resolution-center'] = array(
+    'title' => 'Resolution Center',
+    'page callback' => 'simple_node_importer_node_resolution_center',
+    'access arguments' => array('admin access simple_node_importer'),
+    'file' => 'includes/resolution_center.inc',
+  );
+  $items['nodeimporter/node/%node/download-csv'] = array(
+    'page callback' => 'simple_node_importer_resolution_center_download_csv',
+    'page arguments' => array(2),
+    'access arguments' => array('admin access simple_node_importer'),
+  );
+  return $items;
+}
+
+/**
+ * Mapping form title callback.
+ */
+function simple_node_importer_mapping_title($option, $node) {
+  $ctype_name = node_type_get_name($option);
+  // Add custom breadcrumb for the mapping page.
+  // @FIXME
+// l() expects a Url object, created from a route name or external URI.
+// $breadcrumb = array(
+//     l(t('Home'), NULL),
+//     t('Simple Node Importer'),
+//     t('Configure mapping'),
+//   );
+
+  drupal_set_breadcrumb($breadcrumb);
+  return 'Configure mapping for content type : ' . $ctype_name;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function simple_node_importer_permission() {
+  return array(
+    'admin access simple_node_importer' => array(
+      'title' => t('Admin access Simple Node Importer Dashboard page.'),
+    ),
+    'access admin simple_node_importer settings' => array(
+      'title' => t('Access Simple Importer settings page.'),
+    ),
+    'access simple_node_importer' => array(
+      'title' => t('Access Simple Node Import.'),
+    ),
+    'access simple_node_importer manage uploads' => array(
+      'title' => t('Access Simple Importer manage uploads page.'),
+    ),
+  );
+}
+
+/**
+ * Ajax Callback function().
+ */
+function simple_node_importer_ajax_breif_note_callback($form, $form_state) {
+  $multival_field = array();
+  $fields_required = array();
+  $content_type = $form_state['values']['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+  if ($content_type) {
+    $contentfield_array = simple_node_importer_get_field_list($content_type);
+    foreach ($contentfield_array as $content_field) {
+      if (isset($content_field['field_name']) || array_key_exists('field_name', $content_field)) {
+        $field_info = field_info_field($content_field['field_name']);
+        if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
+          $max_allowed_val = ($field_info['cardinality'] == -1) ? "Unlimited" : $field_info['cardinality'];
+          $multival_field[] = $content_field['label'] . "(" . $max_allowed_val . ")";
+        }
+      }
+      if ($content_field['required']) {
+        $fields_required[] = $content_field['label'];
+      }
+    }
+  }
+  // @FIXME
+// theme() has been renamed to _theme() and should NEVER be called directly.
+// Calling _theme() directly can alter the expected output and potentially
+// introduce security issues (see https://www.drupal.org/node/2195739). You
+// should use renderable arrays instead.
+// 
+// 
+// @see https://www.drupal.org/node/2195739
+// return theme('content_info_note', array('fields_required' => $fields_required, 'multival_field' => $multival_field));
+
+}
+
+/**
+ * Implements hook_node_info().
+ *
+ * We use hook_node_info() to define our node content type.
+ */
+function simple_node_importer_node_info() {
+  // We define the node type as an associative array.
+  return array(
+    'simple_node' => array(
+      'name' => t('Simple Node Importer'),
+      'base' => 'simple_node_importer',
+      'description' => t('This is simple node immporter content type.'),
+      'title_label' => t('Simple Node Importer'),
+      'locked' => TRUE,
+      'has_title' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Implements hook_form().
+ */
+function simple_node_importer_form($node, $form_state) {
+  return node_content_form($node, $form_state);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function simple_node_importer_form_alter(&$form, \Drupal\Core\Form\FormStateInterface &$form_state, $form_id) {
+  if ($form_id == 'simple_node_node_form') {
+    // Set the session variable to false.
+    $_SESSION['file_upload_session'] = FALSE;
+    $content_type_selected = array();
+    // @FIXME
+// // @FIXME
+// // This looks like another module's variable. You'll need to rewrite this call
+// // to ensure that it uses the correct configuration object.
+// $content_type_select = variable_get('content_type_select');
+
+    $content_type_selected['_none'] = t("- Select a value -");
+
+    if (!empty($content_type_select)) {
+      foreach ($content_type_select as $key => $value) {
+        if ($value) {
+          $content_type_selected[$key] = str_replace("_", " ", ucwords($value));
+        }
+      }
+    }
+
+    if (arg(0) == 'node' && is_numeric(arg(1)) && arg(2) == 'edit') {
+      drupal_set_message(t('OOPs! Sorry you are not allowed to resubmit this node again. Please start with new import.'));
+      $nid = arg(1);
+      $node = \Drupal::entityManager()->getStorage('node')->load($nid);
+      $form['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED]['#default_value'] = $node->field_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+      $form['field_content_type']['#disabled'] = TRUE;
+      $form['actions']['submit']['#disabled'] = TRUE;
+      $form['actions']['preview']['#disabled'] = TRUE;
+    }
+
+    $form['title']['#required'] = FALSE;
+    $form['title']['#access'] = FALSE;
+    $form['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED]['#options'] = $content_type_selected;
+    $form['field_content_type']['#weight'] = -25;
+    $form['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED]['#ajax'] = array(
+      'callback' => 'simple_node_importer_ajax_breif_note_callback',
+      'wrapper' => 'replace_breif_note_div',
+    );
+    $form['content_info'] = array(
+      '#markup' => '',
+      '#prefix' => '<div id="replace_breif_note_div">',
+      '#suffix' => '</div>',
+      '#weight' => -20,
+    );
+    $form['download_template'] = array(
+      '#type' => 'submit',
+      '#value' => t('Download Sample File'),
+      '#weight' => -15,
+      '#submit' => array('simple_node_importer_template_submit_handler'),
+      '#limit_validation_errors' => array(
+        array('field_content_type'),
+      ),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="field_content_type[und]"]' => array('value' => '_none'),
+        ),
+      ),
+    );
+
+    // If variable 'content_type_select' is empty, redirect to
+    // configure the simple node import module settings page.
+    if (empty($content_type_select)) {
+      $form['field_content_type']['#access'] = FALSE;
+      $form['field_upload_csv']['#access'] = FALSE;
+      $form['download_template']['#access'] = FALSE;
+      // @FIXME
+// l() expects a Url object, created from a route name or external URI.
+// $message = t('Kindly contact Admin to select the content types which are allowed to be imported, for this you can visit') . l(t('Config Simple Node Import'), 'admin/config/development/snodeimport');
+
+      drupal_set_message($message);
+    }
+
+    $form['field_upload_csv'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['#upload_validators']['simple_node_importer_field_upload_csv_validator'] = array($form_id, $form_state);
+    $form['actions']['submit']['#submit'][] = "simple_node_importer_form_submit_redirect_handler";
+  }
+  if ($form_id == 'simple_node_importer_config_form') {
+    $form['#submit'][] = 'simple_node_importer_config_form_submit';
+  }
+
+}
+
+/**
+ * File upload field validator.
+ */
+function simple_node_importer_field_upload_csv_validator($file, $form_id, $form_state) {
+  $form_values = $form_state['values'];
+  $columns = simple_node_importer_getallcolumnheaders((array) $file);
+  $content_type_fields = simple_node_importer_get_field_list($form_values['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
+  $errors = array();
+  if (empty($content_type_fields)) {
+    $errors[] = t("Select the content type from the above, in which the nodes to be imported.");
+  }
+  if (count($content_type_fields) > count($columns)) {
+    $errors[] = t("CSV should have atleast @number columns", array('@number' => count($content_type_fields)));
+  }
+  return $errors;
+}
+
+/**
+ * Implements hook_node_presave().
+ */
+function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
+  if ($node->getType() == "simple_node") {
+    $selected_content_type = $node->field_content_type[0]->value;
+    $created_date = date('mdY-H:i', $node->getCreatedTime());
+    $node->setTitle('Import-' . $selected_content_type . '-' . $created_date);
+  }
+}
+
+/**
+ * Submit handler for simple_node_importer_template_submit_handler.
+ */
+function simple_node_importer_template_submit_handler($form, &$form_state) {
+  if ($form_state['clicked_button']['#value'] == "Download Sample File" && !empty($form_state['values']['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'])) {
+    simple_node_importer_dynode_select_create_csv($form_state['values']['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
+  }
+  else {
+    form_set_error(t('Download Sample File'), t('Sorry, to download sample template you have to select content type first.'), NULL);
+  }
+}
+
+/**
+ * Submit handler for simple_node_importer_form_submit_redirect_handler.
+ */
+function simple_node_importer_form_submit_redirect_handler($form, &$form_state) {
+  $selected_content = $form_state['values']['field_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+  $_SESSION['file_upload_session'] = TRUE;
+  $form_state['redirect']  = 'nodeimport/' . $selected_content . '/' . $form_state['nid'] . '/mapping';
+}
+
+/**
+ * Mapping Screen Configuration Form.
+ */
+function simple_node_importer_mapping_form($option, $node) {
+  global $base_url;
+  $type = 'module';
+  $module = 'simple_node_importer';
+  $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
+
+  if (empty($node)) {
+    $type = 'Simple Node Importer';
+    $message = 'Node object is not valid.';
+    \Drupal::logger($type)->error($message, array());
+  }
+  elseif (!$_SESSION['file_upload_session']) {
+    drupal_goto('node/add/simple-node');
+  }
+  else {
+    // Options to be listed in File Column List.
+    $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
+    $selected_content_type = $node['build_info']['args'][1]->field_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+    $get_field_list = simple_node_importer_get_field_list($selected_content_type);
+    $allowed_date_format = NULL;
+    foreach ($get_field_list as $field) {
+      if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
+        $allowed_date_format = $field['widget']['settings']['input_format'];
+      }
+    }
+
+    // @FIXME
+// theme() has been renamed to _theme() and should NEVER be called directly.
+// Calling _theme() directly can alter the expected output and potentially
+// introduce security issues (see https://www.drupal.org/node/2195739). You
+// should use renderable arrays instead.
+// 
+// 
+// @see https://www.drupal.org/node/2195739
+// $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
+
+
+    // Add HelpText to the mapping form.
+    $form['helptext'] = array(
+      '#type' => 'item',
+      '#markup' => $outputtext,
+    );
+    // Add theme table to the mapping form.
+    $form['mapping_form']['#theme'] = 'simple_node_import_table';
+    // Mapping form.
+    $form['mapping_form']['title'] = array(
+      '#type' => 'select',
+      '#title' => t('Title'),
+      '#options' => $headers,
+      '#empty_option' => t('Select'),
+      '#empty_value' => '',
+    );
+    foreach ($get_field_list as $key => $field) {
+      // code...
+      $field_info = field_info_field($key);
+      if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
+        $form['mapping_form'][$key] = array(
+          '#type' => 'select',
+          '#title' => $field['label'],
+          '#options' => $headers,
+          '#multiple' => TRUE,
+          '#required' => ($field['required'] == 1) ? TRUE : FALSE,
+          '#empty_option' => t('Select'),
+          '#empty_value' => '',
+        );
+      }
+      else {
+        $form['mapping_form'][$key] = array(
+          '#type' => 'select',
+          '#title' => $field['label'],
+          '#options' => $headers,
+          '#required' => ($field['required'] == 1) ? TRUE : FALSE,
+          '#empty_option' => t('Select'),
+          '#empty_value' => '',
+        );
+      }
+    }
+    // Get the preselected values for form fields.
+    $form = simple_node_importer_getpreselectedvalues($form, $headers);
+
+    $form['import'] = array(
+      '#type' => 'submit',
+      '#value' => t('Import'),
+      '#weight' => 49,
+      '#submit' => array('simple_node_importer_mapping_form_submit'),
+    );
+    // @FIXME
+// l() expects a Url object, created from a route name or external URI.
+// $form['cancel'] = array(
+//       '#markup' => l(t('Cancel'), 'simplenode/' . arg(1) . '/' . arg(2) . '/delete', array('attributes' => array('class' => array('cancel-button')))),
+//       '#weight' => 50,
+//     );
+
+    return $form;
+  }
+}
+
+/**
+ * Helper Function to delete the node on cancel mapping.
+ */
+function simple_node_importer_delete_node($option, $node) {
+  // Unset the session on cancel operation.
+  if ($_SESSION['file_upload_session']) {
+    unset($_SESSION['file_upload_session']);
+  }
+  if ($node) {
+    $node->nid->delete();
+  }
+  drupal_goto('node/add/simple-node');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function simple_node_importer_theme() {
+  return array(
+    'simple_node_import_table' => array(
+      'render element' => 'form',
+    ),
+    'content_info_note' => array(
+      'template' => 'templates/content-info-note',
+      'variables' => array('fields' => array()),
+    ),
+    'mapping_help_text_info' => array(
+      'template' => 'templates/mapping-help-text-info',
+      'variables' => array('fields' => array()),
+    ),
+  );
+}
+
+/**
+ * Implements preprocess().
+ */
+function simple_node_importer_preprocess_content_info_note(&$vars) {
+  $vars['fields_required'] = $vars['fields_required'];
+  $vars['multival_field'] = $vars['multival_field'];
+}
+
+/**
+ * Implements preprocess().
+ */
+function simple_node_importer_preprocess_mapping_help_text_info(&$vars) {
+  $vars['allowed_date_format'] = $vars['allowed_date_format'];
+  $vars['filepath'] = $vars['filepath'];
+}
+
+/**
+ * Theme function to display form data.
+ */
+function theme_simple_node_import_table($form) {
+  // Table header information.
+  $tableheader = array(
+    array('data' => t('Content type Field(s)')),
+    array('data' => t('CSV Column(s)')),
+  );
+  // A variable to hold the row information for each table row.
+  $rows = array();
+  foreach (\Drupal\Core\Render\Element::children($form['form']) as $element_key) {
+    $title = '';
+    // Hide field labels.
+    $form['form'][$element_key]['#title_display'] = 'invisible';
+    if (isset($form['form'][$element_key]['#title'])) {
+      $title = ($form['form'][$element_key]['#required']) ? $form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
+    }
+    $rows[] = array(
+      'data' => array(
+        array(
+          'data' => $title,
+          'class' => 'field-title',
+        ),
+        array(
+          'data' => render($form['form'][$element_key]),
+          'class' => 'field-value',
+        ),
+      ),
+    );
+  }
+  // Use theme_table to produce our table.
+  // @FIXME
+// theme() has been renamed to _theme() and should NEVER be called directly.
+// Calling _theme() directly can alter the expected output and potentially
+// introduce security issues (see https://www.drupal.org/node/2195739). You
+// should use renderable arrays instead.
+// 
+// 
+// @see https://www.drupal.org/node/2195739
+// $output = theme('table', array('header' => $tableheader, 'rows' => $rows));
+
+  return $output;
+}
+
+/**
+ * Mapping Screen Configuration Form validate handler.
+ */
+function simple_node_importer_mapping_form_validate(&$form, &$form_state) {
+  $valarray = array();
+  $duplicates = array();
+  $count_array = array();
+  $form_state->cleanValues();
+  foreach ($form_state['values'] as $key => $val) {
+    if ($val && is_array($val)) {
+      foreach ($val as $v) {
+        $valarray[] = $v;
+      }
+    }
+    elseif ($val) {
+      $valarray[] = $val;
+    }
+  }
+  $count_array = array_count_values($valarray);
+  foreach ($count_array as $field => $count) {
+    if ($count > 1) {
+      $duplicates[] = $field;
+    }
+  }
+  foreach ($duplicates as $duplicate_val) {
+    foreach ($form_state['values'] as $key => $val) {
+      if ($val == $duplicate_val) {
+        form_set_error($key, t('Duplicate Mapping detected for %duplval', array('%duplval' => $duplicate_val)));
+      }
+      elseif (is_array($val)) {
+        foreach ($val as $v) {
+          if ($v == $duplicate_val) {
+            form_set_error($key, t('Duplicate Mapping detected for %duplval', array('%duplval' => $duplicate_val)));
+          }
+        }
+      }
+    }
+  }
+  // Remove Duplicate Error Messages.
+  if (isset($_SESSION['messages']['error'])) {
+    $_SESSION['messages']['error'] = array_unique($_SESSION['messages']['error']);
+  }
+}
+
+/**
+ * Mapping Screen Configuration Form Submit.
+ */
+function simple_node_importer_mapping_form_submit(&$form, &$form_state) {
+  $selected_content = arg(1);
+  // Remove unnecessary values.
+  $form_state->cleanValues();
+  foreach ($form_state['values'] as $key => $val) {
+    $_SESSION['mapvalues'][$key] = $val;
+  }
+  $form_state['redirect']  = 'nodeimport/' . $selected_content . '/' . arg(2) . '/importing';
+}
+
+/**
+ * Import Mapping function to map the fields with file data.
+ */
+function simple_node_importer_create_mapping_fields($type, $node) {
+  // Unset the session on batch start operation.
+  if (isset($_SESSION['file_upload_session']) && !empty($_SESSION['file_upload_session'])) {
+    unset($_SESSION['file_upload_session']);
+  }
+  $operations = array();
+  $map_values = $_SESSION['mapvalues'];
+  $csv_uri = $node->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['uri'];
+  $handle = fopen($csv_uri, 'r');
+  $columns = array();
+  $columns = array_values(simple_node_importer_getallcolumnheaders($node->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]));
+  $record = array();
+  $session_fields = array_keys($map_values);
+  $i = 1;
+  while ($row = fgetcsv($handle)) {
+    if ($i == 1) {
+      $i++;
+      continue;
+    }
+    foreach ($row as $i => $field) {
+      $column1 = str_replace(' ', '_', strtolower($columns[$i]));
+      foreach ($session_fields as $field_name) {
+        if ($map_values[$field_name] == $column1) {
+          $record[$field_name] = $field;
+        }
+        else {
+          if (is_array($map_values[$field_name])) {
+            $multiple_fields = array_keys($map_values[$field_name]);
+            foreach ($multiple_fields as $i => $m_fields) {
+              if ($m_fields == $column1) {
+                $record[$field_name][$i] = $field;
+              }
+            }
+          }
+        }
+      }
+    }
+    $record['nid'] = $node->nid;
+    $record['type'] = $type;
+    $operations[] = array('simple_node_importer_make_nodes', array($record));
+  }
+  $batch = array(
+    'title' => t('Creating Nodes Finally.'),
+    'operations' => $operations,
+    'finished' => 'simple_node_importer_sni_batch_finished',
+    'init_message' => t('Node Creation Is Starting.'),
+    'progress_message' => t('Processed @current out of @total.'),
+    'error_message' => t('Node creation has encountered an error.'),
+  );
+  // Set the batch operation.
+  batch_set($batch);
+  batch_process('node/' . $node->nid);
+  fclose($handle);
+}

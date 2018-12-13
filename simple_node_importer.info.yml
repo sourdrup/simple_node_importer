@@ -1,0 +1,11 @@
+name: 'Simple Node Importer'
+description: 'Allows you to import and Map fields with CSV column from UI.'
+package: 'Simple Node Importer'
+core: 8.x
+scripts:
+  - js/simple_node_importer.js
+stylesheets:
+  all:
+    - css/simple_node_importer.css
+type: module
+dependencies: {  }

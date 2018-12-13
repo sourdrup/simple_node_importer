@@ -1,0 +1,41 @@
+simple_node_importer.config_form:
+  path: /admin/config/development/snodeimport
+  defaults:
+    _title: 'Simple Node Settings'
+    _form: \Drupal\simple_node_importer\Form\SimpleNodeImporterConfigForm
+  requirements:
+    _permission: 'admin access simple_node_importer'
+# simple_node_importer.mapping_form:
+#   path: '/nodeimport/{option}/{node}/mapping'
+#   defaults:
+#     _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
+#     _form: \Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm
+#   requirements:
+#     _permission: 'admin access simple_node_importer'
+# simple_node_importer.create_mapping_fields:
+#   path: '/nodeimport/{type}/{node}/importing'
+#   defaults:
+#     _title: 'Mappings Import'
+#     _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_create_mapping_fields'
+#   requirements:
+#     _permission: 'admin access simple_node_importer'
+# simple_node_importer.delete_node:
+#   path: '/simplenode/{option}/{node}/delete'
+#   defaults:
+#     _title: 'Confirm Delete'
+#     _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_delete_node'
+#   requirements:
+#     _permission: 'admin access simple_node_importer'
+# simple_node_importer.node_resolution_center:
+#   path: /nodeimporter/resolution-center
+#   defaults:
+#     _title: 'Resolution Center'
+#     _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_node_resolution_center'
+#   requirements:
+#     _permission: 'admin access simple_node_importer'
+# simple_node_importer.resolution_center_download_csv:
+#   path: '/nodeimporter/node/{node}/download-csv'
+#   defaults:
+#     _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_resolution_center_download_csv'
+#   requirements:
+#     _permission: 'admin access simple_node_importer'
