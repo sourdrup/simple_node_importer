@@ -1,5 +1,5 @@
 # config.factory helps us read data out of the config file in the "install" directory.
 services:
-  snp.get_content_types:
-    class: Drupal\simple_node_importer\Services\GetContentTypes
+  snp.get_services:
+    class: Drupal\simple_node_importer\Services\GetServices
     arguments: ["@config.factory"]

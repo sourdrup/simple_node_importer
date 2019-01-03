@@ -77,7 +77,7 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
     $form['fieldset_content_type']['content_type_select'] = [
       '#type' => 'checkboxes',
       '#title' => t('Select content type'),
-      '#default_value' => isset($content_type_selected) ? $content_type_selected : '',
+      '#default_value' => isset($content_type_selected) ? $content_type_selected : NULL,
       '#options' => $this->content_types,
       '#description' => t('Configuration for the content type to be selected.'),
       '#required' => FALSE,
@@ -142,19 +142,20 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
   public function _submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
 
     if ($this->checkAvailablity){
-      $node_setting = $form_state->getValue(['node_delete', 'option']);
 
-      $query = db_select('node', 'n');
-      $query->fields('n', ['nid']);
-      $query->condition('n.status', '1', '=');
-      $query->condition('n.type', 'simple_node');
-      $query->orderBy('created', 'DESC');
+      $node_setting = $form_state->getValue(['node_delete', 'deletelog']);
+      $bundle = 'simple_node';
+      $query = \Drupal::entityQuery('node');
+      $query->condition('status', 1);
+      $query->condition('type', $bundle);
+      $nids = $query->execute();
 
-      $nids = $query->execute()->fetchCol();
-
-      if ($node_setting === 'option' && !empty($nids)) {
+      if ($node_setting === 'deletelog' && !empty($nids)) {
         entity_delete_multiple('node', $nids);
         drupal_set_message(t('%count nodes has been deleted.', ['%count' => count($nids)]));
+      }
+      else{
+        drupal_set_message("Oops there is nothing to delete");
       }
     }    
   }
@@ -165,9 +166,9 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       //this is not the only way to write this code. You may want to save the Service here instead of the string.
-      $container->get('snp.get_content_types')->getContentTypeList(),
+      $container->get('snp.get_services')->getContentTypeList(),
       // to check the availability of Content Type exists or not
-      $container->get('snp.get_content_types')->checkAvailablity()
+      $container->get('snp.get_services')->checkAvailablity()
     );
   }
 

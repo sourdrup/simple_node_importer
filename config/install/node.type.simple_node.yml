@@ -10,5 +10,5 @@ type: simple_node
 description: 'This is a simple node importer content type.'
 help: ''
 new_revision: false
-preview_mode: 1
+preview_mode: 0
 display_submitted: true

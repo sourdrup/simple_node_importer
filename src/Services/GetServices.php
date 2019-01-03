@@ -11,6 +11,7 @@
 namespace Drupal\simple_node_importer\Services;
 
 use Drupal\Core\Config\ConfigFactory;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Url;
 
 /**
@@ -18,7 +19,7 @@ use Drupal\Core\Url;
  *
  * @package Drupal\nettv
  */
-class GetContentTypes {
+class GetServices {
 
   /**
    * Drupal\Core\Config\ConfigFactory definition.
@@ -66,5 +67,37 @@ class GetContentTypes {
       return FALSE;      
     }
 
+  }
+
+
+  /**
+  * Function to get list of fields of particular content type.
+  *
+  * @param string $content_type
+  *   Machine name of content type.
+  *
+  * @return array
+  *   field_info_instance of particular content type.
+  */
+
+  public function snp_get_field_list($entity_type = 'node', $content_type = '') {
+
+    if (!empty($content_type)) {
+        //$field_instance = field_info_instances("node", $content_type);
+        $entityManager = \Drupal::service('entity_field.manager');
+        $fields = $entityManager->getFieldDefinitions($entity_type, $content_type);
+        \Drupal::logger('simple_node_importer')->notice("hello");
+        /*$extra_fields = field_info_extra_fields('node', $content_type, 'form');
+
+        if (array_key_exists('title', $extra_fields)) {
+          $extra_fields['title']['required'] = TRUE;
+          $field_instance = array('title' => $extra_fields['title']) + $field_instance;
+        }*/
+        return $fields;
+        // return $field_instance;
+    }
+    else {
+      return "";
+    }
   }
 }

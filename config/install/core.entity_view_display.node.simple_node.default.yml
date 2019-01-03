@@ -21,13 +21,13 @@ content:
         label: hidden
         type: list_default
         region: content
-        weight: 101
+        weight: 2
         settings: {  }
         third_party_settings: {  }
     field_upload_csv:
         label: hidden
         type: file_default
-        weight: 106
+        weight: 4
         region: content
         settings:
             use_description_as_link_text: true
