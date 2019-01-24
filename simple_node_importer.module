@@ -177,8 +177,27 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
   if ($content_type) {
     $contentfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $content_type);
 
+    $output = "<div class='content-type-info'>";
+      foreach($contentfield_array as $key => $fieldArr){
+        if($key == 'required'){
+          # code...
+          $output .= "<div class='lable-required'>Required fields are:<ul>";
+        }
+        elseif ($key == 'multivalued') {
+          # code...
+          $output .= "<div class='lable-multivalued'>Multivalued fields are:<ul>";
+        }
+
+        foreach($fieldArr as $fkey => $field){
+          $output .= "<li>". ucwords(str_replace('_', ' ', $field)) ."</li>";
+        }
+
+        $output .= "</ul></div>";
+      }
+    $output .= "</div>";
+
     
-    $response->addCommand(new HtmlCommand('#replace-breif-note-div', $content_type));
+    $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
     return $response;
     /*foreach ($contentfield_array as $content_field) {
       if (isset($content_field['field_name']) || array_key_exists('field_name', $content_field)) {

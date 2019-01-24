@@ -82,19 +82,36 @@ class GetServices {
 
   public function snp_get_field_list($entity_type = 'node', $content_type = '') {
 
-    if (!empty($content_type)) {
-        //$field_instance = field_info_instances("node", $content_type);
+    if (!empty($content_type)) {   
+        
         $entityManager = \Drupal::service('entity_field.manager');
-        $fields = $entityManager->getFieldDefinitions($entity_type, $content_type);
-        \Drupal::logger('simple_node_importer')->notice("hello");
-        /*$extra_fields = field_info_extra_fields('node', $content_type, 'form');
+        $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
+        $defaultFieldArr = ['title', 'body'];
+        $haystack = 'field_';
 
-        if (array_key_exists('title', $extra_fields)) {
-          $extra_fields['title']['required'] = TRUE;
-          $field_instance = array('title' => $extra_fields['title']) + $field_instance;
-        }*/
-        return $fields;
-        // return $field_instance;
+        foreach ($fieldsManager as $key => $field){
+          if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
+              
+            //fetch the list of required fields.
+            if($fieldsManager[$key]->isRequired()){
+              $fieldsArr['required'][$key] = $key;
+            }
+
+            //fetch the list of multivalued fields.
+            if (!in_array($key, $defaultFieldArr)){
+              $FieldStorageConfig = \Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $key);
+              if($FieldStorageConfig->getCardinality() === -1 || $FieldStorageConfig->getCardinality() > 1){
+                $fieldsArr['multivalued'][$key] = $key;
+              }
+            }              
+          }
+        }
+       
+       // log the list of required and multivalued fields  
+        \Drupal::logger('simple_node_importer')->notice('<pre><code>' . print_r($fieldsArr, TRUE) . '</code></pre>');
+
+        // return list of fields;
+        return $fieldsArr;
     }
     else {
       return "";
