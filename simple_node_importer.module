@@ -6,6 +6,9 @@ use Drupal\Core\Url;
 use Drupal\Core\Link;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\field\Entity\FieldStorageConfig;
+
 
 /**
  * @file
@@ -195,22 +198,9 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
         $output .= "</ul></div>";
       }
     $output .= "</div>";
-
     
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
     return $response;
-    /*foreach ($contentfield_array as $content_field) {
-      if (isset($content_field['field_name']) || array_key_exists('field_name', $content_field)) {
-        $field_info = field_info_field($content_field['field_name']);
-        if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
-          $max_allowed_val = ($field_info['cardinality'] == -1) ? "Unlimited" : $field_info['cardinality'];
-          $multival_field[] = $content_field['label'] . "(" . $max_allowed_val . ")";
-        }
-      }
-      if ($content_field['required']) {
-        $fields_required[] = $content_field['label'];
-      }
-    }*/
   }
   
 
@@ -219,42 +209,16 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
 
   
   // @FIXME
-// theme() has been renamed to _theme() and should NEVER be called directly.
-// Calling _theme() directly can alter the expected output and potentially
-// introduce security issues (see https://www.drupal.org/node/2195739). You
-// should use renderable arrays instead.
-// 
-// 
-// @see https://www.drupal.org/node/2195739
-/*return _theme('content_info_note', array('fields_required' => $fields_required, 'multival_field' => $multival_field));
-*/
+  // theme() has been renamed to _theme() and should NEVER be called directly.
+  // Calling _theme() directly can alter the expected output and potentially
+  // introduce security issues (see https://www.drupal.org/node/2195739). You
+  // should use renderable arrays instead.
+  // 
+  // 
+  // @see https://www.drupal.org/node/2195739
+  /*return _theme('content_info_note', array('fields_required' => $fields_required, 'multival_field' => $multival_field));
+  */
 }
-
-/**
- * Implements hook_node_info().
- *
- * We use hook_node_info() to define our node content type.
- */
-function simple_node_importer_node_info() {
-  // We define the node type as an associative array.
-  return array(
-    'simple_node' => array(
-      'name' => t('Simple Node Importer'),
-      'base' => 'simple_node_importer',
-      'description' => t('This is simple node immporter content type.'),
-      'title_label' => t('Simple Node Importer'),
-      'locked' => TRUE,
-      'has_title' => TRUE,
-    ),
-  );
-}
-
-/**
- * Implements hook_form().
- */
-/*function simple_node_importer_form($node, $form_state) {
-  return node_content_form($node, $form_state);
-}*/
 
 /**
  * Implements hook_form_alter().
@@ -266,24 +230,7 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
     // Set the session variable to false.
     $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
     $sessionVariable->set('file_upload_session', FALSE);
-
-    // Declare a variable for selected content type.
-    $content_type_selected = array();
     
-    // Get the list of all allowed content types
-    $content_type_select = \Drupal::config('simple_node_importer.settings')->get('content_type_select');
-  
-    $content_type_selected['_none'] = t("- Select a value -");
-
-    if (!empty($content_type_select)) {
-      foreach ($content_type_select as $key => $value) {
-        if ($value) {
-          $content_type_selected[$key] = str_replace("_", " ", ucwords($value));
-        }
-      }
-    }
- 
-    //
     $form['status']['#access'] = FALSE;   
     $form['title']['#required'] = FALSE;
     $form['title']['#access'] = FALSE;
@@ -297,12 +244,6 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
       $form['actions']['submit']['#disabled'] = TRUE;
       $form['actions']['preview']['#disabled'] = TRUE;
     }*/
-
-    $form['field_select_content_type']['widget']['#options'] = $content_type_selected;
-
-    /*$form['field_select_content_type']['#weight'] = -25;*/
-
-    //simple_node_importer_ajax_breif_note_callback($form, $form_state);
 
     $form['field_select_content_type']['widget']['#ajax'] = array(
       'callback' => 'snpAjaxBreifCallback',
@@ -349,9 +290,11 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
       drupal_set_message($message);
     }
 
-    $form['field_upload_csv']['#upload_validators']['simple_node_importer_field_upload_csv_validator'] = array($form_id, $form_state);
+    $form['field_upload_csv']['#upload_validators']['simple_node_importer_field_upload_csv_validator'] = array($form_id, &$form_state);
+
     $form['actions']['submit']['#submit'][] = "simple_node_importer_form_submit_redirect_handler";
   }
+
   if ($form_id == 'simple_node_importer_config_form') {
     $form['#submit'][] = 'simple_node_importer_config_form_submit';
   }
@@ -361,9 +304,12 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
 /**
  * File upload field validator.
  */
-function simple_node_importer_field_upload_csv_validator($file, $form_id, $form_state) {
-  $form_values = $form_state['values'];
+function simple_node_importer_field_upload_csv_validator($file, $form_id, FormStateInterface &$form_state) {
+
+  $form_values = $form_state->getValues();
+
   $columns = simple_node_importer_getallcolumnheaders((array) $file);
+  print_r($form_values); exit;
   $content_type_fields = simple_node_importer_get_field_list($form_values['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
   $errors = array();
   if (empty($content_type_fields)) {
@@ -390,12 +336,14 @@ function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
  * Submit handler for simple_node_importer_template_submit_handler.
  */
 function simple_node_importer_template_submit_handler($form, &$form_state) {
-  if ($form_state['clicked_button']['#value'] == "Download Sample File" && !empty($form_state['values']['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'])) {
+//print_r($form_state->getValue('field_select_content_type')); exit();
+  if ($form_state->getValue('field_select_content_type')) {
     simple_node_importer_dynode_select_create_csv($form_state['values']['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
   }
   else {
     form_set_error(t('Download Sample File'), t('Sorry, to download sample template you have to select content type first.'), NULL);
   }
+
 }
 
 /**
@@ -714,4 +662,43 @@ function simple_node_importer_create_mapping_fields($type, $node) {
   batch_set($batch);
   batch_process('node/' . $node->nid);
   fclose($handle);
+}
+
+/**
+ * Set dynamic allowed values for the alignment field.
+ *
+ * @param \Drupal\field\Entity\FieldStorageConfig $definition
+ *   The field definition.
+ * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+ *   The entity being created if applicable.
+ * @param bool $cacheable
+ *   Boolean indicating if the results are cacheable.
+ *
+ * @return array
+ *   An array of possible key and value options.
+ *
+ * @see options_allowed_values()
+ */
+function getAllowedContentTypeList(FieldStorageConfig $definition, ContentEntityInterface $entity = NULL, $cacheable) {
+
+  // Declare a variable for selected content type.
+  $content_type_selected = array();
+
+  // Add a custom alignment option for Article nodes.
+  if ($entity->bundle() == 'simple_node') {
+    // Get the list of all allowed content types
+    $content_type_select = \Drupal::config('simple_node_importer.settings')->get('content_type_select');
+
+    $content_type_selected['_none'] = t("- Select a value -");
+
+    if (!empty($content_type_select)) {
+      foreach ($content_type_select as $key => $value) {
+        if ($value) {
+          $content_type_selected[$key] = str_replace("_", " ", $value);
+        }
+      }
+    }
+  }
+
+  return $content_type_selected;
 }
