@@ -173,11 +173,11 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
   
   $multival_field = array();
   $fields_required = array();
-
+  $output = "";
 
   \Drupal::logger('simple_node_importer')->notice($content_type);
 
-  if ($content_type) {
+  if ($content_type !== "_none") {
     $contentfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $content_type);
 
     $output = "<div class='content-type-info'>";
@@ -200,8 +200,12 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
     $output .= "</div>";
     
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
-    return $response;
   }
+  else{
+    $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
+  }
+
+  return $response;
   
 
   // $response->addCommand(new HtmlCommand('#replace-breif-note-div', $content_type ));
@@ -223,7 +227,7 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
 /**
  * Implements hook_form_alter().
  */
-function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_state, $form_id) {
+function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state, $form_id) {
 
   if ($form_id == 'node_simple_node_form') {
 
@@ -234,16 +238,6 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
     $form['status']['#access'] = FALSE;   
     $form['title']['#required'] = FALSE;
     $form['title']['#access'] = FALSE;
-
-    /*if (arg(0) == 'node' && is_numeric(arg(1)) && arg(2) == 'edit') {
-      drupal_set_message(t('OOPs! Sorry you are not allowed to resubmit this node again. Please start with new import.'));
-      $nid = arg(1);
-      $node = \Drupal::entityManager()->getStorage('node')->load($nid);
-      $form['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED]['#default_value'] = $node->field_select_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
-      $form['field_select_content_type']['#disabled'] = TRUE;
-      $form['actions']['submit']['#disabled'] = TRUE;
-      $form['actions']['preview']['#disabled'] = TRUE;
-    }*/
 
     $form['field_select_content_type']['widget']['#ajax'] = array(
       'callback' => 'snpAjaxBreifCallback',
@@ -273,7 +267,7 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
     );
 
     /* 
-    ** Check whether Admin set the content type to import or note.
+    ** Check whether Admin set the content type to import or not.
     ** If variable 'content_type_select' is empty.
     ** ask to select the content type list.
     */
@@ -293,6 +287,16 @@ function simple_node_importer_form_alter(&$form,  FormStateInterface &$form_stat
     $form['field_upload_csv']['#upload_validators']['simple_node_importer_field_upload_csv_validator'] = array($form_id, &$form_state);
 
     $form['actions']['submit']['#submit'][] = "simple_node_importer_form_submit_redirect_handler";
+
+    /*if (arg(0) == 'node' && is_numeric(arg(1)) && arg(2) == 'edit') {
+      drupal_set_message(t('OOPs! Sorry you are not allowed to resubmit this node again. Please start with new import.'));
+      $nid = arg(1);
+      $node = \Drupal::entityManager()->getStorage('node')->load($nid);
+      $form['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED]['#default_value'] = $node->field_select_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+      $form['field_select_content_type']['#disabled'] = TRUE;
+      $form['actions']['submit']['#disabled'] = TRUE;
+      $form['actions']['preview']['#disabled'] = TRUE;
+    }*/
   }
 
   if ($form_id == 'simple_node_importer_config_form') {
@@ -335,15 +339,10 @@ function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
 /**
  * Submit handler for simple_node_importer_template_submit_handler.
  */
-function simple_node_importer_template_submit_handler($form, &$form_state) {
-//print_r($form_state->getValue('field_select_content_type')); exit();
+function simple_node_importer_template_submit_handler(&$form, FormStateInterface &$form_state) {
   if ($form_state->getValue('field_select_content_type')) {
-    simple_node_importer_dynode_select_create_csv($form_state['values']['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
+    simple_node_importer_dynode_select_create_csv($form_state->getValue('field_select_content_type')[0]['value']);
   }
-  else {
-    form_set_error(t('Download Sample File'), t('Sorry, to download sample template you have to select content type first.'), NULL);
-  }
-
 }
 
 /**
