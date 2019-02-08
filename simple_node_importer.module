@@ -313,7 +313,6 @@ function simple_node_importer_field_upload_csv_validator($file, $form_id, FormSt
   $form_values = $form_state->getValues();
 
   $columns = simple_node_importer_getallcolumnheaders((array) $file);
-  print_r($form_values); exit;
   $content_type_fields = simple_node_importer_get_field_list($form_values['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
   $errors = array();
   if (empty($content_type_fields)) {
@@ -340,8 +339,11 @@ function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
  * Submit handler for simple_node_importer_template_submit_handler.
  */
 function simple_node_importer_template_submit_handler(&$form, FormStateInterface &$form_state) {
-  if ($form_state->getValue('field_select_content_type')) {
-    simple_node_importer_dynode_select_create_csv($form_state->getValue('field_select_content_type')[0]['value']);
+
+  $selected_content_type = $form_state->getValue('field_select_content_type')[0]['value'];
+  
+  if($selected_content_type) {
+    \Drupal::service('snp.get_services')->snp_select_create_csv($selected_content_type);
   }
 }
 
@@ -349,7 +351,7 @@ function simple_node_importer_template_submit_handler(&$form, FormStateInterface
  * Submit handler for simple_node_importer_form_submit_redirect_handler.
  */
 function simple_node_importer_form_submit_redirect_handler($form, &$form_state) {
-  $selected_content = $form_state['values']['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+  $selected_content = $form_state->getValue('field_select_content_type','margin-top',\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED,0);
   $_SESSION['file_upload_session'] = TRUE;
   $form_state['redirect']  = 'nodeimport/' . $selected_content . '/' . $form_state['nid'] . '/mapping';
 }
