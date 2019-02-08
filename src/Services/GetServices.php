@@ -53,7 +53,28 @@ class GetServices {
 
     return $content_types;
   }
-
+  function snp_select_create_csv($content_type) {
+    $csv = array();
+    $labelarray = $this->snp_sample_csv_getfeilds($entity_type = 'node',$content_type);
+    foreach ($labelarray as $key => $value) {
+     $csv[] =  $value;
+    }
+    $filename = $content_type . '_template.csv';
+  
+    header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+    header('Content-Description: File Transfer');
+    header("Content-type: text/csv");
+    header("Content-Disposition: attachment; filename={$filename}");
+    header("Expires: 0");
+    header("Pragma: public");
+     $fh = @fopen('php://output', 'w');
+  
+    // Put the data into the stream.
+    fputcsv($fh, $csv);
+    fclose($fh);
+    // Make sure nothing else is sent, our file is done.
+    exit;
+  }
   public function checkAvailablity($nodeType = 'simple_node'){
     $nodeTypes = \Drupal\node\Entity\NodeType::loadMultiple();
     foreach ($nodeTypes as $key => $value) {
@@ -79,7 +100,28 @@ class GetServices {
   * @return array
   *   field_info_instance of particular content type.
   */
-
+  public function snp_sample_csv_getfeilds($entity_type = 'node', $content_type = '') {
+    if (!empty($content_type)) {
+      $entityManager = \Drupal::service('entity_field.manager');
+      $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
+      $defaultFieldArr = ['title', 'body'];
+      $haystack = 'field_';
+        foreach ($fieldsManager as $key  => $field ){
+          if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
+            if($key == 'title'){
+              $fieldsArr1[$key] = $field->getLabel()->render();          
+              }
+            else{
+                $fieldsArr1[$key] = $field->getLabel() ;
+                }
+            }
+      }
+      return $fieldsArr1;
+    }
+    else {
+      return "";
+    }
+  }
   public function snp_get_field_list($entity_type = 'node', $content_type = '') {
 
     if (!empty($content_type)) {   
