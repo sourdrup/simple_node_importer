@@ -55,7 +55,7 @@ class GetServices {
   }
   function snp_select_create_csv($content_type) {
     $csv = array();
-    $labelarray = $this->snp_sample_csv_getfeilds($entity_type = 'node',$content_type);
+    $labelarray = $this->snp_sample_csv_getfields($entity_type = 'node',$content_type);
     foreach ($labelarray as $key => $value) {
      $csv[] =  $value;
     }
@@ -99,40 +99,58 @@ class GetServices {
   * @return array
   *   field_info_instance of particular content type.
   */
-  public function snp_sample_csv_getfeilds($entity_type = 'node', $content_type = '') {
+  public function snp_sample_csv_getfields($entity_type = 'node', $content_type = '') {
+
     if (!empty($content_type)) {
-      $entityManager = \Drupal::service('entity_field.manager');
-      $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
-      $defaultFieldArr = ['title', 'body'];
-      $haystack = 'field_';
-        foreach ($fieldsManager as $key  => $field ){
-          if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
-            if($key == 'title'){
-              $fieldsArr1[$key] = $field->getLabel()->render();          
-              }
-            else{
-                $fieldsArr1[$key] = $field->getLabel() ;
-                }
-            }
-      }
-      return $fieldsArr1;
+
+      $fieldsManager = $this->snp_get_fields_definition($entity_type, $content_type);
+      $type = 'label';
+      return $fieldsArr = $this->snp_getFields($fieldsManager, $type, $entity_type);
     }
     else {
       return "";
     }
   }
+
   public function snp_get_field_list($entity_type = 'node', $content_type = '') {
 
-    if (!empty($content_type)) {   
-        
-        $entityManager = \Drupal::service('entity_field.manager');
-        $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
-        $defaultFieldArr = ['title', 'body'];
-        $haystack = 'field_';
+    if (!empty($content_type)) {
 
-        foreach ($fieldsManager as $key => $field){
-          if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
-              
+      $fieldsManager = $this->snp_get_fields_definition($entity_type, $content_type);
+      $type = 'cardinality';
+      
+      $fieldsArr = $this->snp_getFields($fieldsManager, $type, $entity_type);
+     // log the list of required and multivalued fields  
+      \Drupal::logger('simple_node_importer')->notice('<pre><code>' . print_r($fieldsArr, TRUE) . '</code></pre>');
+
+      // return list of fields;
+      return $fieldsArr;
+    }
+    else {
+      return "";
+    }
+  }
+
+  public function snp_get_fields_definition($entity_type = 'node', $content_type = ''){
+    $entityManager = \Drupal::service('entity_field.manager');
+    $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
+    return $fieldsManager;
+  }
+
+  public function snp_getFields($fieldsManager, $type, $entity_type = NULL){
+    $defaultFieldArr = ['title', 'body'];
+    $haystack = 'field_';
+      foreach ($fieldsManager as $key  => $field ){
+        if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
+          if($type == 'label'){
+            if($key == 'title'){
+              $fieldsArr[$key] = $field->getLabel()->render();          
+            }
+            else{
+              $fieldsArr[$key] = $field->getLabel() ;
+            }
+          }
+          else if($type == 'cardinality'){
             //fetch the list of required fields.
             if($fieldsManager[$key]->isRequired()){
               $fieldsArr['required'][$key] = $key;
@@ -144,18 +162,10 @@ class GetServices {
               if($FieldStorageConfig->getCardinality() === -1 || $FieldStorageConfig->getCardinality() > 1){
                 $fieldsArr['multivalued'][$key] = $key;
               }
-            }              
+            }   
           }
         }
-       
-       // log the list of required and multivalued fields  
-        \Drupal::logger('simple_node_importer')->notice('<pre><code>' . print_r($fieldsArr, TRUE) . '</code></pre>');
-
-        // return list of fields;
-        return $fieldsArr;
-    }
-    else {
-      return "";
-    }
+      }
+    return $fieldsArr;
   }
 }

@@ -265,7 +265,7 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
         ),
       ),
     );
-
+    $content_type_selected = array();
     /* 
     ** Check whether Admin set the content type to import or not.
     ** If variable 'content_type_select' is empty.
