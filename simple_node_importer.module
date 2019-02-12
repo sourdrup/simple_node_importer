@@ -265,13 +265,14 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
         ),
       ),
     );
-    $content_type_selected = array();
+    
+    $fieldSelectContentOptions = $form['field_select_content_type']['widget']['#options'];
     /* 
     ** Check whether Admin set the content type to import or not.
     ** If variable 'content_type_select' is empty.
     ** ask to select the content type list.
     */
-    if (count($content_type_selected) == 1) {
+    if (count($fieldSelectContentOptions) == 1) {
       $form['field_select_content_type']['#access'] = FALSE;
       $form['field_upload_csv']['#access'] = FALSE;
       $form['download_template']['#access'] = FALSE;         
@@ -284,44 +285,22 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
       drupal_set_message($message);
     }
 
-    $form['field_upload_csv']['#upload_validators']['simple_node_importer_field_upload_csv_validator'] = array($form_id, &$form_state);
+    $form['field_upload_csv']['#upload_validators']['file_validate_extensions'] = array('csv');
 
     $form['actions']['submit']['#submit'][] = "simple_node_importer_form_submit_redirect_handler";
+  }
 
-    /*if (arg(0) == 'node' && is_numeric(arg(1)) && arg(2) == 'edit') {
-      drupal_set_message(t('OOPs! Sorry you are not allowed to resubmit this node again. Please start with new import.'));
-      $nid = arg(1);
-      $node = \Drupal::entityManager()->getStorage('node')->load($nid);
-      $form['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED]['#default_value'] = $node->field_select_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
-      $form['field_select_content_type']['#disabled'] = TRUE;
-      $form['actions']['submit']['#disabled'] = TRUE;
-      $form['actions']['preview']['#disabled'] = TRUE;
-    }*/
+  if ($form_id == 'node_simple_node_edit_form'){
+    drupal_set_message(t('OOPs! Sorry you are not allowed to resubmit this node again. Please start with new import.'));
+    $form['field_select_content_type']['#disabled'] = TRUE;
+    $form['field_upload_csv']['#disabled'] = TRUE;
+    $form['actions']['submit']['#disabled'] = TRUE;
   }
 
   if ($form_id == 'simple_node_importer_config_form') {
     $form['#submit'][] = 'simple_node_importer_config_form_submit';
   }
 
-}
-
-/**
- * File upload field validator.
- */
-function simple_node_importer_field_upload_csv_validator($file, $form_id, FormStateInterface &$form_state) {
-
-  $form_values = $form_state->getValues();
-
-  $columns = simple_node_importer_getallcolumnheaders((array) $file);
-  $content_type_fields = simple_node_importer_get_field_list($form_values['field_select_content_type'][\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value']);
-  $errors = array();
-  if (empty($content_type_fields)) {
-    $errors[] = t("Select the content type from the above, in which the nodes to be imported.");
-  }
-  if (count($content_type_fields) > count($columns)) {
-    $errors[] = t("CSV should have atleast @number columns", array('@number' => count($content_type_fields)));
-  }
-  return $errors;
 }
 
 /**
@@ -351,9 +330,13 @@ function simple_node_importer_template_submit_handler(&$form, FormStateInterface
  * Submit handler for simple_node_importer_form_submit_redirect_handler.
  */
 function simple_node_importer_form_submit_redirect_handler($form, &$form_state) {
-  $selected_content = $form_state->getValue('field_select_content_type','margin-top',\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED,0);
+  $newNid = $form_state->getValue('nid');
+  $selected_content = $form_state->getValue('field_select_content_type')[0]['value'];
+
   $_SESSION['file_upload_session'] = TRUE;
-  $form_state['redirect']  = 'nodeimport/' . $selected_content . '/' . $form_state['nid'] . '/mapping';
+  $parameters = array('option' =>$selected_content,'node' => $newNid);
+
+  $form_state->setRedirect('simple_node_importer.mapping_form', $parameters);
 }
 
 /**
