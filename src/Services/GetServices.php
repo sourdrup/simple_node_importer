@@ -89,7 +89,16 @@ class GetServices {
     }
 
   }
-
+  function simple_node_importer_getallcolumnheaders($fileuri) {
+    $handle = fopen($fileuri, 'r');
+    $row = fgetcsv($handle);
+    foreach ($row as $value) {
+      // code...
+      $key = strtolower(preg_replace('/\s+/', '_', $value));
+      $column[$key] = $value;
+    }
+    return $column;
+  }
   /**
   * Function to get list of fields of particular content type.
   *
@@ -107,7 +116,7 @@ class GetServices {
       $type = 'label';
       return $fieldsArr = $this->snp_getFields($fieldsManager, $type, $entity_type);
     }
-    else {
+    else {  
       return "";
     }
   }
@@ -130,7 +139,19 @@ class GetServices {
       return "";
     }
   }
-
+  function simple_node_importer_getpreselectedvalues($form, $headers) {
+    foreach ($form['mapping_form'] as $field => $attributes) {
+      foreach ($headers as $field_name => $label) {
+        foreach($attributes['#options'] as $key => $value)
+        {
+          if (strtolower($value) == strtolower($label)) {
+            $form['mapping_form'][$field]['#default_value'] = $field_name;
+          }  
+        }
+      }
+    }
+    return $form;
+  }
   public function snp_get_fields_definition($entity_type = 'node', $content_type = ''){
     $entityManager = \Drupal::service('entity_field.manager');
     $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);

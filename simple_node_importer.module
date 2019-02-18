@@ -27,14 +27,14 @@ require_once drupal_get_path('module', 'simple_node_importer') . '/includes/reso
  *
  * Displays help and module information.
  */
-function simple_node_importer_help($path, $arg) {
-  global $base_url;
-  $type = 'module';
-  $module = 'simple_node_importer';
-  $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/thumbnail.png';
-  $output = '';
-  switch ($path) {
-    case 'admin/help#simple_node_importer':
+// function simple_node_importer_help($path, $arg) {
+//   global $base_url;
+//   $type = 'module';
+//   $module = 'simple_node_importer';
+//   $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/thumbnail.png';
+//   $output = '';
+//   switch ($path) {
+//     case 'admin/help#simple_node_importer':
       // code...
      /* $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('Simple Node Importer is a simple module which imports nodes using CSV files. It provides the functionality for mapping UI to map CSV columns to it\'s corresponding entity field. For more information, see the online handbook entry for <a href="@simplenodeimporter">Simple Node Importer module</a>.', array('@simplenodeimporter' => \Drupal\Core\Url::fromUri('https://www.drupal.org/sandbox/sourdrup/2828039'))) . '</p>';
@@ -55,23 +55,23 @@ function simple_node_importer_help($path, $arg) {
     url() expects a route name or an external URI.
     $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Node remove settings"</em></strong>, admin can admin can delete all the nodes of <em>"Simple Node Importer"</em> content type.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';*/
 
-    $output .= '<dt><strong>' . t('Importing with Simple Node Importer') . '</strong></dt>';
-    $output .= '<dd><ul><li>' . t('Visit <a href="@add-simple-node-importer">Add Simple Node Importer</a> allows user to select content type, select content type.', array('@add-simple-node-importer' => \Drupal\Core\Url::fromRoute('node.add'))) . '</li><li>' . t('As user selects content type, an information box will appear having all the details of mandatory fields and multi valued fields, which helps user to prepare CSV accordingly.') . '</li><li>' . t('On select of content type, user will be able to download sample CSV file having all the field name as column headers, it is not mandatory at all to use sample downloaded CSV, user can use custom CSV too.') . '</li><li>' . t('If user uploads custom CSV, then user need to select or map the correct column to correct field name on very next step otherwise mapping appears pre-selected.') . '</li><li>' . t('Multiple values for multi valued fileds must be in separate columns and all columns should be selected on mapping page to the respective field.') . '</li><li>' . t('Once mapping is done, user can start import, clicking on Import button.') . '</li><li>' . t('Importing started and once completed you will redirect to Status page.') . '</li></ul></dd>';
-      $output .= '<dt>' . t('Resolution Center') . '</dt>';
-      $output .= '<dd>' . t('If any records fails to import, you will get a link <a href"@resolution-center"><em>Resolution Center</em></a> on import status page, where user can view, download and delete the failed records.', array('@resolution-center' => 'nodeimporter/node/%node/download-csv')) . '</dd>';
-      $output .= '<dt>' . t('Demo') . '</dt>';
-      $output .= '<dd>' . t('Still need demo?, you can visit: <br/><br/> <a href="@demo" target="_blank"><img src="@thumbnail" alt="demo" width="15%" ></a>', array('@demo' => 'https://youtu.be/331_aDapzrM', '@thumbnail' => $filepath)) . '</dd>';
-      $output .= '<dt>' . t('User permissions') . '</dt>';
-      $output .= '<dd>' . t('Visit <a href="@permissions">permissions page</a>.', array('@permissions' => \Drupal\Core\Url::fromRoute('user.admin_permissions'))) . '</dd>';
-      $output .= '</dl>';
-      break;
+//     $output .= '<dt><strong>' . t('Importing with Simple Node Importer') . '</strong></dt>';
+//     $output .= '<dd><ul><li>' . t('Visit <a href="@add-simple-node-importer">Add Simple Node Importer</a> allows user to select content type, select content type.', array('@add-simple-node-importer' => \Drupal\Core\Url::fromRoute('node.add'))) . '</li><li>' . t('As user selects content type, an information box will appear having all the details of mandatory fields and multi valued fields, which helps user to prepare CSV accordingly.') . '</li><li>' . t('On select of content type, user will be able to download sample CSV file having all the field name as column headers, it is not mandatory at all to use sample downloaded CSV, user can use custom CSV too.') . '</li><li>' . t('If user uploads custom CSV, then user need to select or map the correct column to correct field name on very next step otherwise mapping appears pre-selected.') . '</li><li>' . t('Multiple values for multi valued fileds must be in separate columns and all columns should be selected on mapping page to the respective field.') . '</li><li>' . t('Once mapping is done, user can start import, clicking on Import button.') . '</li><li>' . t('Importing started and once completed you will redirect to Status page.') . '</li></ul></dd>';
+//       $output .= '<dt>' . t('Resolution Center') . '</dt>';
+//       $output .= '<dd>' . t('If any records fails to import, you will get a link <a href"@resolution-center"><em>Resolution Center</em></a> on import status page, where user can view, download and delete the failed records.', array('@resolution-center' => 'nodeimporter/node/%node/download-csv')) . '</dd>';
+//       $output .= '<dt>' . t('Demo') . '</dt>';
+//       $output .= '<dd>' . t('Still need demo?, you can visit: <br/><br/> <a href="@demo" target="_blank"><img src="@thumbnail" alt="demo" width="15%" ></a>', array('@demo' => 'https://youtu.be/331_aDapzrM', '@thumbnail' => $filepath)) . '</dd>';
+//       $output .= '<dt>' . t('User permissions') . '</dt>';
+//       $output .= '<dd>' . t('Visit <a href="@permissions">permissions page</a>.', array('@permissions' => \Drupal\Core\Url::fromRoute('user.admin_permissions'))) . '</dd>';
+//       $output .= '</dl>';
+//       break;
 
-    default:
-      // code...
-      break;
-  }
-  return $output;
-}
+//     default:
+//       // code...
+//       break;
+//   }
+//   return $output;
+// }
 
 /**
  * Implements hook_menu().
@@ -298,6 +298,7 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
   }
 
   if ($form_id == 'simple_node_importer_config_form') {
+
     $form['#submit'][] = 'simple_node_importer_config_form_submit';
   }
 
@@ -335,109 +336,108 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
 
   $_SESSION['file_upload_session'] = TRUE;
   $parameters = array('option' =>$selected_content,'node' => $newNid);
-
   $form_state->setRedirect('simple_node_importer.mapping_form', $parameters);
 }
 
-/**
- * Mapping Screen Configuration Form.
- */
-function simple_node_importer_mapping_form($option, $node) {
-  global $base_url;
-  $type = 'module';
-  $module = 'simple_node_importer';
-  $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
+// /**
+//  * Mapping Screen Configuration Form.
+//  */
+// function simple_node_importer_mapping_form($option, $node) {
+//   global $base_url;
+//   $type = 'module';
+//   $module = 'simple_node_importer';
+//   $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
 
-  if (empty($node)) {
-    $type = 'Simple Node Importer';
-    $message = 'Node object is not valid.';
-    \Drupal::logger($type)->error($message, array());
-  }
-  elseif (!$_SESSION['file_upload_session']) {
-    drupal_goto('node/add/simple-node');
-  }
-  else {
-    // Options to be listed in File Column List.
-    $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
-    $selected_content_type = $node['build_info']['args'][1]->field_select_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
-    $get_field_list = simple_node_importer_get_field_list($selected_content_type);
-    $allowed_date_format = NULL;
-    foreach ($get_field_list as $field) {
-      if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
-        $allowed_date_format = $field['widget']['settings']['input_format'];
-      }
-    }
+//   if (empty($node)) {
+//     $type = 'Simple Node Importer';
+//     $message = 'Node object is not valid.';
+//     \Drupal::logger($type)->error($message, array());
+//   }
+//   elseif (!$_SESSION['file_upload_session']) {
+//     drupal_goto('node/add/simple-node');
+//   }
+//   else {
+//     // Options to be listed in File Column List.
+//     $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
+//     $selected_content_type = $node['build_info']['args'][1]->field_select_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+//     $get_field_list = simple_node_importer_get_field_list($selected_content_type);
+//     $allowed_date_format = NULL;
+//     foreach ($get_field_list as $field) {
+//       if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
+//         $allowed_date_format = $field['widget']['settings']['input_format'];
+//       }
+//     }
 
-    // @FIXME
-// theme() has been renamed to _theme() and should NEVER be called directly.
-// Calling _theme() directly can alter the expected output and potentially
-// introduce security issues (see https://www.drupal.org/node/2195739). You
-// should use renderable arrays instead.
-// 
-// 
-// @see https://www.drupal.org/node/2195739
-// $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
+//     // @FIXME
+// // theme() has been renamed to _theme() and should NEVER be called directly.
+// // Calling _theme() directly can alter the expected output and potentially
+// // introduce security issues (see https://www.drupal.org/node/2195739). You
+// // should use renderable arrays instead.
+// // 
+// // 
+// // @see https://www.drupal.org/node/2195739
+// // $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
 
 
-    // Add HelpText to the mapping form.
-    $form['helptext'] = array(
-      '#type' => 'item',
-      '#markup' => $outputtext,
-    );
-    // Add theme table to the mapping form.
-    $form['mapping_form']['#theme'] = 'simple_node_import_table';
-    // Mapping form.
-    $form['mapping_form']['title'] = array(
-      '#type' => 'select',
-      '#title' => t('Title'),
-      '#options' => $headers,
-      '#empty_option' => t('Select'),
-      '#empty_value' => '',
-    );
-    foreach ($get_field_list as $key => $field) {
-      // code...
-      $field_info = field_info_field($key);
-      if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
-        $form['mapping_form'][$key] = array(
-          '#type' => 'select',
-          '#title' => $field['label'],
-          '#options' => $headers,
-          '#multiple' => TRUE,
-          '#required' => ($field['required'] == 1) ? TRUE : FALSE,
-          '#empty_option' => t('Select'),
-          '#empty_value' => '',
-        );
-      }
-      else {
-        $form['mapping_form'][$key] = array(
-          '#type' => 'select',
-          '#title' => $field['label'],
-          '#options' => $headers,
-          '#required' => ($field['required'] == 1) ? TRUE : FALSE,
-          '#empty_option' => t('Select'),
-          '#empty_value' => '',
-        );
-      }
-    }
-    // Get the preselected values for form fields.
-    $form = simple_node_importer_getpreselectedvalues($form, $headers);
-
-    $form['import'] = array(
-      '#type' => 'submit',
-      '#value' => t('Import'),
-      '#weight' => 49,
-      '#submit' => array('simple_node_importer_mapping_form_submit'),
-    );
-    // @FIXME
-// l() expects a Url object, created from a route name or external URI.
-// $form['cancel'] = array(
-//       '#markup' => l(t('Cancel'), 'simplenode/' . arg(1) . '/' . arg(2) . '/delete', array('attributes' => array('class' => array('cancel-button')))),
-//       '#weight' => 50,
+//     // Add HelpText to the mapping form.
+//     $form['helptext'] = array(
+//       '#type' => 'item',
+//       '#markup' => $outputtext,
 //     );
+//     // Add theme table to the mapping form.
+//     $form['mapping_form']['#theme'] = 'simple_node_import_table';
+//     // Mapping form.
+//     $form['mapping_form']['title'] = array(
+//       '#type' => 'select',
+//       '#title' => t('Title'),
+//       '#options' => $headers,
+//       '#empty_option' => t('Select'),
+//       '#empty_value' => '',
+//     );
+//     foreach ($get_field_list as $key => $field) {
+//       // code...
+//       $field_info = field_info_field($key);
+//       if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
+//         $form['mapping_form'][$key] = array(
+//           '#type' => 'select',
+//           '#title' => $field['label'],
+//           '#options' => $headers,
+//           '#multiple' => TRUE,
+//           '#required' => ($field['required'] == 1) ? TRUE : FALSE,
+//           '#empty_option' => t('Select'),
+//           '#empty_value' => '',
+//         );
+//       }
+//       else {
+//         $form['mapping_form'][$key] = array(
+//           '#type' => 'select',
+//           '#title' => $field['label'],
+//           '#options' => $headers,
+//           '#required' => ($field['required'] == 1) ? TRUE : FALSE,
+//           '#empty_option' => t('Select'),
+//           '#empty_value' => '',
+//         );
+//       }
+//     }
+//     // Get the preselected values for form fields.
+//     $form = simple_node_importer_getpreselectedvalues($form, $headers);
 
-    return $form;
-  }
-}
+//     $form['import'] = array(
+//       '#type' => 'submit',
+//       '#value' => t('Import'),
+//       '#weight' => 49,
+//       '#submit' => array('simple_node_importer_mapping_form_submit'),
+//     );
+//     // @FIXME
+// // l() expects a Url object, created from a route name or external URI.
+// // $form['cancel'] = array(
+// //       '#markup' => l(t('Cancel'), 'simplenode/' . arg(1) . '/' . arg(2) . '/delete', array('attributes' => array('class' => array('cancel-button')))),
+// //       '#weight' => 50,
+// //     );
+
+//     return $form;
+//   }
+// }
 
 /**
  * Helper Function to delete the node on cancel mapping.

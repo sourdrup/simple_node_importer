@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 
+
 class SimpleNodeImporterMappingForm extends FormBase {
 
   /**
@@ -20,12 +21,17 @@ class SimpleNodeImporterMappingForm extends FormBase {
     return 'simple_node_importer_mapping_form';
   }
 
-  public function buildForm(array $option, \Drupal\Core\Form\FormStateInterface $node) {
+  public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL,$node = NULL) {
     global $base_url;
     $type = 'module';
     $module = 'simple_node_importer';
     $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
-
+    $node = \Drupal::entityManager()->getStorage('node')->load($node);
+    $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
+    $file = \Drupal\file\Entity\File::load($fid);
+    $uri = $file->getFileUri();
+    $url = \Drupal\Core\Url::fromUri(file_create_url($uri))->toString();
+    
     if (empty($node)) {
       $type = 'Simple Node Importer';
       $message = 'Node object is not valid.';
@@ -36,9 +42,14 @@ class SimpleNodeImporterMappingForm extends FormBase {
     }
     else {
       // Options to be listed in File Column List.
-      $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
-      $selected_content_type = $node['build_info']['args'][1]->field_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
-      $get_field_list = simple_node_importer_get_field_list($selected_content_type);
+      $headers = \Drupal::service('snp.get_services')->simple_node_importer_getallcolumnheaders($url);
+      
+      // $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
+      // $selected_content_type = $node['build_info']['args'][1]->field_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+      $selected_content_type = $node->get('field_select_content_type')->getValue()[0]['value'];
+      // $get_field_list = snp_get_field_list($selected_content_type);
+      $entity_type = 'node';
+      $get_field_list =\Drupal::service('snp.get_services')->snp_get_field_list($entity_type,$selected_content_type);
       $allowed_date_format = NULL;
       foreach ($get_field_list as $field) {
         if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
@@ -55,8 +66,6 @@ class SimpleNodeImporterMappingForm extends FormBase {
       // 
       // @see https://www.drupal.org/node/2195739
       // $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
-
-
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#type' => 'item',
@@ -74,7 +83,9 @@ class SimpleNodeImporterMappingForm extends FormBase {
       ];
       foreach ($get_field_list as $key => $field) {
         // code...
-        $field_info = field_info_field($key);
+        
+        $field_name = key($field);
+        $field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name);
         if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
           $form['mapping_form'][$key] = [
             '#type' => 'select',
@@ -98,8 +109,7 @@ class SimpleNodeImporterMappingForm extends FormBase {
         }
       }
       // Get the preselected values for form fields.
-      $form = simple_node_importer_getpreselectedvalues($form, $headers);
-
+      $form = \Drupal::service('snp.get_services')->simple_node_importer_getpreselectedvalues($form, $headers);
       $form['import'] = [
         '#type' => 'submit',
         '#value' => t('Import'),

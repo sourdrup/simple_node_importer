@@ -74,17 +74,17 @@ function simple_node_importer_dynode_select_create_csv($content_type) {
 /**
  * Helper functo to get header array().
  */
-function simple_node_importer_getallcolumnheaders($file) {
-  $uploaded_fileuri = $file['uri'];
-  $handle = fopen($uploaded_fileuri, 'r');
-  $row = fgetcsv($handle);
-  foreach ($row as $value) {
-    // code...
-    $key = strtolower(str_replace(" ", "_", $value));
-    $column[$key] = $value;
-  }
-  return $column;
-}
+// function simple_node_importer_getallcolumnheaders($file) {
+//   $uploaded_fileuri = $file['uri'];
+//   $handle = fopen($uploaded_fileuri, 'r');
+//   $row = fgetcsv($handle);
+//   foreach ($row as $value) {
+//     // code...
+//     $key = strtolower(str_replace(" ", "_", $value));
+//     $column[$key] = $value;
+//   }
+//   return $column;
+// }
 
 /**
  * Return Field Array().
@@ -102,15 +102,15 @@ function simple_node_importer_getfieldarray($contenttype) {
 /**
  * Helper Function to auto select the mapping field values.
  */
-function simple_node_importer_getpreselectedvalues($form, $headers) {
-  foreach ($form['mapping_form'] as $field => $attributes) {
-    foreach ($headers as $field_name => $label) {
-      if (is_array($attributes)) {
-        if (strtolower($attributes['#title']) == strtolower($label)) {
-          $form['mapping_form'][$field]['#default_value'] = $field_name;
-        }
-      }
-    }
-  }
-  return $form;
-}
+// function simple_node_importer_getpreselectedvalues($form, $headers) {
+//   foreach ($form['mapping_form'] as $field => $attributes) {
+//     foreach ($headers as $field_name => $label) {
+//       if (is_array($attributes)) {
+//         if (strtolower($attributes['#title']) == strtolower($label)) {
+//           $form['mapping_form'][$field]['#default_value'] = $field_name;
+//         }
+//       }
+//     }
+//   }
+//   return $form;
+// }

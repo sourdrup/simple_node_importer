@@ -8,7 +8,7 @@ simple_node_importer.config_form:
 simple_node_importer.mapping_form:
   path: '/nodeimport/{option}/{node}/mapping'
   defaults:
-    _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
+    # _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
     _form: \Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm
   requirements:
     _permission: 'admin access simple_node_importer'
