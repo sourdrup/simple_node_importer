@@ -10,8 +10,13 @@ simple_node_importer.mapping_form:
   defaults:
     # _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
     _form: \Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm
+  options:
+    parameters:
+      node:
+        type: entity:node
   requirements:
     _permission: 'admin access simple_node_importer'
+
 # simple_node_importer.create_mapping_fields:
 #   path: '/nodeimport/{type}/{node}/importing'
 #   defaults:

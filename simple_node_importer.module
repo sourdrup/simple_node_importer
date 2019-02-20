@@ -178,7 +178,8 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
   \Drupal::logger('simple_node_importer')->notice($content_type);
 
   if ($content_type !== "_none") {
-    $contentfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $content_type);
+    $type = 'import';
+    $contentfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $content_type, $type);
 
     $output = "<div class='content-type-info'>";
       foreach($contentfield_array as $key => $fieldArr){

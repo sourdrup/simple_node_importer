@@ -8,11 +8,25 @@
 namespace Drupal\simple_node_importer\Form;
 
 use Drupal\Core\Form\FormBase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
 use Drupal\Core\Render\Element;
 
 
 class SimpleNodeImporterMappingForm extends FormBase {
+
+   protected $services;
+
+  /**
+   * Constructs a Drupal\Component\Plugin\PluginBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   */
+  public function __construct($GetServices) {
+    $this->services = $GetServices;
+  }
 
   /**
    * {@inheritdoc}
@@ -21,17 +35,16 @@ class SimpleNodeImporterMappingForm extends FormBase {
     return 'simple_node_importer_mapping_form';
   }
 
-  public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL,$node = NULL) {
+  public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL, \Drupal\node\NodeInterface $node = NULL) {
     global $base_url;
     $type = 'module';
     $module = 'simple_node_importer';
     $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
-    $node = \Drupal::entityManager()->getStorage('node')->load($node);
     $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
     $file = \Drupal\file\Entity\File::load($fid);
     $uri = $file->getFileUri();
     $url = \Drupal\Core\Url::fromUri(file_create_url($uri))->toString();
-    
+
     if (empty($node)) {
       $type = 'Simple Node Importer';
       $message = 'Node object is not valid.';
@@ -42,20 +55,22 @@ class SimpleNodeImporterMappingForm extends FormBase {
     }
     else {
       // Options to be listed in File Column List.
-      $headers = \Drupal::service('snp.get_services')->simple_node_importer_getallcolumnheaders($url);
-      
-      // $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
-      // $selected_content_type = $node['build_info']['args'][1]->field_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
+      $headers = $this->services->simple_node_importer_getallcolumnheaders($uri);
       $selected_content_type = $node->get('field_select_content_type')->getValue()[0]['value'];
-      // $get_field_list = snp_get_field_list($selected_content_type);
-      $entity_type = 'node';
-      $get_field_list =\Drupal::service('snp.get_services')->snp_get_field_list($entity_type,$selected_content_type);
+      
+      $entity_type = $node->getEntityTypeId();
+
+      $type = 'mapping';
+      
+      $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_content_type, $type);
+
       $allowed_date_format = NULL;
-      foreach ($get_field_list as $field) {
+      //dsm($get_field_list);
+      /*foreach ($get_field_list as $field) {
         if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
           $allowed_date_format = $field['widget']['settings']['input_format'];
         }
-      }
+      }*/
 
       // @FIXME
       // theme() has been renamed to _theme() and should NEVER be called directly.
@@ -81,35 +96,42 @@ class SimpleNodeImporterMappingForm extends FormBase {
         '#empty_option' => t('Select'),
         '#empty_value' => '',
       ];
+
       foreach ($get_field_list as $key => $field) {
         // code...
-        
-        $field_name = key($field);
-        $field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name);
-        if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
-          $form['mapping_form'][$key] = [
-            '#type' => 'select',
-            '#title' => $field['label'],
-            '#options' => $headers,
-            '#multiple' => TRUE,
-            '#required' => ($field['required'] == 1) ? TRUE : FALSE,
-            '#empty_option' => t('Select'),
-            '#empty_value' => '',
-          ];
-        }
-        else {
-          $form['mapping_form'][$key] = [
-            '#type' => 'select',
-            '#title' => $field['label'],
-            '#options' => $headers,
-            '#required' => ($field['required'] == 1) ? TRUE : FALSE,
-            '#empty_option' => t('Select'),
-            '#empty_value' => '',
-          ];
+        if ($key != 'title') {   
+
+          $field_name = $field->get('field_name');
+          $field_label = $field->get('label');
+          $field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name);
+
+          if ($field_info->get('cardinality') == -1 || $field_info->get('cardinality') > 1) {
+            $form['mapping_form'][$key] = [
+              '#type' => 'select',
+              '#title' => $field_label,
+              '#options' => $headers,
+              '#multiple' => TRUE,
+              '#required' => ($field->isRequired()) ? TRUE : FALSE,
+              '#empty_option' => t('Select'),
+              '#empty_value' => '',
+            ];
+          }
+          else {
+            $form['mapping_form'][$key] = [
+              '#type' => 'select',
+              '#title' => $field_label,
+              '#options' => $headers,
+              '#required' => ($field->isRequired()) ? TRUE : FALSE,
+              '#empty_option' => t('Select'),
+              '#empty_value' => '',
+            ];
+          }
         }
       }
+      
       // Get the preselected values for form fields.
-      $form = \Drupal::service('snp.get_services')->simple_node_importer_getpreselectedvalues($form, $headers);
+      $form = $this->services->simple_node_importer_getpreselectedvalues($form, $headers);
+      
       $form['import'] = [
         '#type' => 'submit',
         '#value' => t('Import'),
@@ -183,6 +205,15 @@ class SimpleNodeImporterMappingForm extends FormBase {
     }
     $form_state->set(['redirect'], 'nodeimport/' . $selected_content . '/' . arg(2) . '/importing');
   }
+
+  /**
+   * {@inheritdoc}
+   */
+   public static function create(ContainerInterface $container) {
+     return new static(
+       $container->get('snp.get_services')
+     );
+   }
 
 }
 ?>

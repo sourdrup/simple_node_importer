@@ -55,7 +55,8 @@ class GetServices {
   }
   function snp_select_create_csv($content_type) {
     $csv = array();
-    $labelarray = $this->snp_sample_csv_getfields($entity_type = 'node',$content_type);
+    $type = 'csv';
+    $labelarray = $this->snp_get_field_list($entity_type = 'node',$content_type, $type);
     foreach ($labelarray as $key => $value) {
      $csv[] =  $value;
     }
@@ -89,7 +90,8 @@ class GetServices {
     }
 
   }
-  function simple_node_importer_getallcolumnheaders($fileuri) {
+
+  public function simple_node_importer_getallcolumnheaders($fileuri) {
     $handle = fopen($fileuri, 'r');
     $row = fgetcsv($handle);
     foreach ($row as $value) {
@@ -99,59 +101,35 @@ class GetServices {
     }
     return $column;
   }
-  /**
-  * Function to get list of fields of particular content type.
-  *
-  * @param string $content_type
-  *   Machine name of content type.
-  *
-  * @return array
-  *   field_info_instance of particular content type.
-  */
-  public function snp_sample_csv_getfields($entity_type = 'node', $content_type = '') {
+  
+  public function snp_get_field_list($entity_type = 'node', $content_type = '', $type = NULL) {
 
     if (!empty($content_type)) {
 
       $fieldsManager = $this->snp_get_fields_definition($entity_type, $content_type);
-      $type = 'label';
-      return $fieldsArr = $this->snp_getFields($fieldsManager, $type, $entity_type);
-    }
-    else {  
-      return "";
-    }
-  }
-
-  public function snp_get_field_list($entity_type = 'node', $content_type = '') {
-
-    if (!empty($content_type)) {
-
-      $fieldsManager = $this->snp_get_fields_definition($entity_type, $content_type);
-      $type = 'cardinality';
       
       $fieldsArr = $this->snp_getFields($fieldsManager, $type, $entity_type);
-     // log the list of required and multivalued fields  
-      \Drupal::logger('simple_node_importer')->notice('<pre><code>' . print_r($fieldsArr, TRUE) . '</code></pre>');
 
-      // return list of fields;
       return $fieldsArr;
     }
     else {
       return "";
     }
   }
-  function simple_node_importer_getpreselectedvalues($form, $headers) {
+
+  public function simple_node_importer_getpreselectedvalues($form, $headers) {
     foreach ($form['mapping_form'] as $field => $attributes) {
-      foreach ($headers as $field_name => $label) {
-        foreach($attributes['#options'] as $key => $value)
-        {
-          if (strtolower($value) == strtolower($label)) {
-            $form['mapping_form'][$field]['#default_value'] = $field_name;
-          }  
+      if(is_array($attributes)){
+        foreach($attributes['#options'] as $key => $value){
+          if(array_key_exists($key, $headers) && $headers[$key] == $attributes['#title']){
+            $form['mapping_form'][$field]['#default_value'] = $key;
+          }
         }
       }
     }
     return $form;
   }
+
   public function snp_get_fields_definition($entity_type = 'node', $content_type = ''){
     $entityManager = \Drupal::service('entity_field.manager');
     $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
@@ -163,7 +141,7 @@ class GetServices {
     $haystack = 'field_';
       foreach ($fieldsManager as $key  => $field ){
         if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
-          if($type == 'label'){
+          if($type == 'csv'){
             if($key == 'title'){
               $fieldsArr[$key] = $field->getLabel()->render();          
             }
@@ -171,7 +149,7 @@ class GetServices {
               $fieldsArr[$key] = $field->getLabel() ;
             }
           }
-          else if($type == 'cardinality'){
+          else if($type == 'import'){
             //fetch the list of required fields.
             if($fieldsManager[$key]->isRequired()){
               $fieldsArr['required'][$key] = $key;
@@ -184,6 +162,9 @@ class GetServices {
                 $fieldsArr['multivalued'][$key] = $key;
               }
             }   
+          }
+          else if($type == 'mapping'){
+            $fieldsArr[$key] = $field;
           }
         }
       }
