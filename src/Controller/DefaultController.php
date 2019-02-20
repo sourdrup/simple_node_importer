@@ -6,17 +6,22 @@
 namespace Drupal\simple_node_importer\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\node\NodeInterface;
 
 /**
  * Default controller for the simple_node_importer module.
  */
 class DefaultController extends ControllerBase {
 
-  public function simple_node_importer_create_mapping_fields($type, \Drupal\node\NodeInterface $node) {
+  public function simple_node_importer_create_mapping_fields($type, NodeInterface $node) {
+    // Set the session variable to false.
+    $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
+    
     // Unset the session on batch start operation.
-    if (isset($_SESSION['file_upload_session']) && !empty($_SESSION['file_upload_session'])) {
-      unset($_SESSION['file_upload_session']);
+    if (!empty($sessionVariable->get('file_upload_session'))) {
+      $sessionVariable->delete('file_upload_session');
     }
+    
     $operations = [];
     $map_values = $_SESSION['mapvalues'];
     $csv_uri = $node->field_upload_csv[0]->uri;
