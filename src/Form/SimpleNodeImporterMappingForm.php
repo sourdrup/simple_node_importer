@@ -72,17 +72,9 @@ class SimpleNodeImporterMappingForm extends FormBase {
         }
       }*/
 
-      // @FIXME
-      // theme() has been renamed to _theme() and should NEVER be called directly.
-      // Calling _theme() directly can alter the expected output and potentially
-      // introduce security issues (see https://www.drupal.org/node/2195739). You
-      // should use renderable arrays instead.
-      // 
-      // 
-      // @see https://www.drupal.org/node/2195739
-      // $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
       // Add HelpText to the mapping form.
       $form['helptext'] = [
+        '#theme' => 'mapping_help_text_info',
         '#type' => 'item',
         '#markup' => $outputtext,
       ];
@@ -128,17 +120,14 @@ class SimpleNodeImporterMappingForm extends FormBase {
           }
         }
       }
-      
+
       // Get the preselected values for form fields.
       $form = $this->services->simple_node_importer_getpreselectedvalues($form, $headers);
-      
+          
       $form['import'] = [
         '#type' => 'submit',
         '#value' => t('Import'),
         '#weight' => 49,
-        '#submit' => [
-          'simple_node_importer_mapping_form_submit'
-          ],
       ];
       // @FIXME
       // l() expects a Url object, created from a route name or external URI.

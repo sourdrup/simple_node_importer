@@ -90,7 +90,37 @@ class GetServices {
     }
 
   }
-
+  function create_simple_node_import_table($form) {
+    // Table header information.
+  $form = $form['mapping_form'];
+    $tableheader = array(
+      array('data' => t('Content type Field(s)')),
+      array('data' => t('CSV Column(s)')),
+    );
+    // A variable to hold the row information for each table row.
+    $rows = array();
+    foreach (\Drupal\Core\Render\Element::children($form) as $element_key) {
+      $title = '';
+      // Hide field labels.
+      $form[$element_key]['#title_display'] = 'invisible';
+      if (isset($form[$element_key]['#title'])) {
+        $title = ($form[$element_key]['#required']) ? $form[$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
+      }
+      $rows[] = array(
+        'data' => array(
+          array(
+            'data' => $title,
+            'class' => 'field-title',
+          ),
+          array(
+            'data' => render($form[$element_key]),
+            'class' => 'field-value',
+          ),
+        ),
+      );
+    }
+    return $tableparameters = array($rows,$tableheader);
+  }
   public function simple_node_importer_getallcolumnheaders($fileuri) {
     $handle = fopen($fileuri, 'r');
     $row = fgetcsv($handle);

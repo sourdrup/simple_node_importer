@@ -73,55 +73,6 @@ require_once drupal_get_path('module', 'simple_node_importer') . '/includes/reso
 //   return $output;
 // }
 
-/**
- * Implements hook_menu().
- */
-/*function simple_node_importer_menu() {
-  $items = array();
-  $items['admin/config/development/snodeimport'] = array(
-    'title' => 'Simple Node Settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('simple_node_importer_config_form'),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['nodeimport/%/%node/mapping'] = array(
-    'title callback' => 'simple_node_importer_mapping_title',
-    'title arguments' => array(1, 2),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('simple_node_importer_mapping_form', 1, 2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['nodeimport/%/%node/importing'] = array(
-    'title' => 'Mappings Import',
-    'page callback' => 'simple_node_importer_create_mapping_fields',
-    'page arguments' => array(1, 2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['simplenode/%/%node/delete'] = array(
-    'title' => 'Confirm Delete',
-    'page callback' => 'simple_node_importer_delete_node',
-    'page arguments' => array(1, 2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['admin/config/development/snodeimport/resolution-center'] = array(
-    'title' => 'Resolution Center',
-    'page callback' => 'simple_node_importer_node_resolution_center',
-    'access arguments' => array('admin access simple_node_importer'),
-    'file' => 'includes/resolution_center.inc',
-  );
-  $items['nodeimporter/resolution-center'] = array(
-    'title' => 'Resolution Center',
-    'page callback' => 'simple_node_importer_node_resolution_center',
-    'access arguments' => array('admin access simple_node_importer'),
-    'file' => 'includes/resolution_center.inc',
-  );
-  $items['nodeimporter/node/%node/download-csv'] = array(
-    'page callback' => 'simple_node_importer_resolution_center_download_csv',
-    'page arguments' => array(2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  return $items;
-}*/
 
 /**
  * Mapping form title callback.
@@ -339,107 +290,6 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
   $parameters = array('option' =>$selected_content,'node' => $newNid);
   $form_state->setRedirect('simple_node_importer.mapping_form', $parameters);
 }
-
-// /**
-//  * Mapping Screen Configuration Form.
-//  */
-// function simple_node_importer_mapping_form($option, $node) {
-//   global $base_url;
-//   $type = 'module';
-//   $module = 'simple_node_importer';
-//   $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
-
-//   if (empty($node)) {
-//     $type = 'Simple Node Importer';
-//     $message = 'Node object is not valid.';
-//     \Drupal::logger($type)->error($message, array());
-//   }
-//   elseif (!$_SESSION['file_upload_session']) {
-//     drupal_goto('node/add/simple-node');
-//   }
-//   else {
-//     // Options to be listed in File Column List.
-//     $headers = simple_node_importer_getallcolumnheaders($node['build_info']['args'][1]->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]);
-//     $selected_content_type = $node['build_info']['args'][1]->field_select_content_type[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['value'];
-//     $get_field_list = simple_node_importer_get_field_list($selected_content_type);
-//     $allowed_date_format = NULL;
-//     foreach ($get_field_list as $field) {
-//       if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
-//         $allowed_date_format = $field['widget']['settings']['input_format'];
-//       }
-//     }
-
-//     // @FIXME
-// // theme() has been renamed to _theme() and should NEVER be called directly.
-// // Calling _theme() directly can alter the expected output and potentially
-// // introduce security issues (see https://www.drupal.org/node/2195739). You
-// // should use renderable arrays instead.
-// // 
-// // 
-// // @see https://www.drupal.org/node/2195739
-// // $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
-
-
-//     // Add HelpText to the mapping form.
-//     $form['helptext'] = array(
-//       '#type' => 'item',
-//       '#markup' => $outputtext,
-//     );
-//     // Add theme table to the mapping form.
-//     $form['mapping_form']['#theme'] = 'simple_node_import_table';
-//     // Mapping form.
-//     $form['mapping_form']['title'] = array(
-//       '#type' => 'select',
-//       '#title' => t('Title'),
-//       '#options' => $headers,
-//       '#empty_option' => t('Select'),
-//       '#empty_value' => '',
-//     );
-//     foreach ($get_field_list as $key => $field) {
-//       // code...
-//       $field_info = field_info_field($key);
-//       if ($field_info['cardinality'] == -1 || $field_info['cardinality'] > 1) {
-//         $form['mapping_form'][$key] = array(
-//           '#type' => 'select',
-//           '#title' => $field['label'],
-//           '#options' => $headers,
-//           '#multiple' => TRUE,
-//           '#required' => ($field['required'] == 1) ? TRUE : FALSE,
-//           '#empty_option' => t('Select'),
-//           '#empty_value' => '',
-//         );
-//       }
-//       else {
-//         $form['mapping_form'][$key] = array(
-//           '#type' => 'select',
-//           '#title' => $field['label'],
-//           '#options' => $headers,
-//           '#required' => ($field['required'] == 1) ? TRUE : FALSE,
-//           '#empty_option' => t('Select'),
-//           '#empty_value' => '',
-//         );
-//       }
-//     }
-//     // Get the preselected values for form fields.
-//     $form = simple_node_importer_getpreselectedvalues($form, $headers);
-
-//     $form['import'] = array(
-//       '#type' => 'submit',
-//       '#value' => t('Import'),
-//       '#weight' => 49,
-//       '#submit' => array('simple_node_importer_mapping_form_submit'),
-//     );
-//     // @FIXME
-// // l() expects a Url object, created from a route name or external URI.
-// // $form['cancel'] = array(
-// //       '#markup' => l(t('Cancel'), 'simplenode/' . arg(1) . '/' . arg(2) . '/delete', array('attributes' => array('class' => array('cancel-button')))),
-// //       '#weight' => 50,
-// //     );
-
-//     return $form;
-//   }
-// }
-
 /**
  * Helper Function to delete the node on cancel mapping.
  */
@@ -461,13 +311,14 @@ function simple_node_importer_theme() {
   return array(
     'simple_node_import_table' => array(
       'render element' => 'form',
+      'function' => 'theme_simple_node_import_table',
     ),
     'content_info_note' => array(
       'template' => 'templates/content-info-note',
       'variables' => array('fields' => array()),
     ),
     'mapping_help_text_info' => array(
-      'template' => 'templates/mapping-help-text-info',
+      'template' => 'mapping-help-text-info',
       'variables' => array('fields' => array()),
     ),
   );
@@ -493,6 +344,7 @@ function simple_node_importer_preprocess_mapping_help_text_info(&$vars) {
  * Theme function to display form data.
  */
 function theme_simple_node_import_table($form) {
+ // print_r('dsbcsbdjh');die;
   // Table header information.
   $tableheader = array(
     array('data' => t('Content type Field(s)')),
@@ -530,65 +382,14 @@ function theme_simple_node_import_table($form) {
 // 
 // @see https://www.drupal.org/node/2195739
 // $output = theme('table', array('header' => $tableheader, 'rows' => $rows));
+$table = array(
+  '#type' => 'table',
+  '#header' => $tableheader,
+  '#rows' => $rows,
+);
+$output = drupal_render($table);
 
   return $output;
-}
-
-/**
- * Mapping Screen Configuration Form validate handler.
- */
-function simple_node_importer_mapping_form_validate(&$form, &$form_state) {
-  $valarray = array();
-  $duplicates = array();
-  $count_array = array();
-  $form_state->cleanValues();
-  foreach ($form_state['values'] as $key => $val) {
-    if ($val && is_array($val)) {
-      foreach ($val as $v) {
-        $valarray[] = $v;
-      }
-    }
-    elseif ($val) {
-      $valarray[] = $val;
-    }
-  }
-  $count_array = array_count_values($valarray);
-  foreach ($count_array as $field => $count) {
-    if ($count > 1) {
-      $duplicates[] = $field;
-    }
-  }
-  foreach ($duplicates as $duplicate_val) {
-    foreach ($form_state['values'] as $key => $val) {
-      if ($val == $duplicate_val) {
-        form_set_error($key, t('Duplicate Mapping detected for %duplval', array('%duplval' => $duplicate_val)));
-      }
-      elseif (is_array($val)) {
-        foreach ($val as $v) {
-          if ($v == $duplicate_val) {
-            form_set_error($key, t('Duplicate Mapping detected for %duplval', array('%duplval' => $duplicate_val)));
-          }
-        }
-      }
-    }
-  }
-  // Remove Duplicate Error Messages.
-  if (isset($_SESSION['messages']['error'])) {
-    $_SESSION['messages']['error'] = array_unique($_SESSION['messages']['error']);
-  }
-}
-
-/**
- * Mapping Screen Configuration Form Submit.
- */
-function simple_node_importer_mapping_form_submit(&$form, &$form_state) {
-  $selected_content = arg(1);
-  // Remove unnecessary values.
-  $form_state->cleanValues();
-  foreach ($form_state['values'] as $key => $val) {
-    $_SESSION['mapvalues'][$key] = $val;
-  }
-  $form_state['redirect']  = 'nodeimport/' . $selected_content . '/' . arg(2) . '/importing';
 }
 
 /**
