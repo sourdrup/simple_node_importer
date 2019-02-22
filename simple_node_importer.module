@@ -336,8 +336,8 @@ function simple_node_importer_preprocess_content_info_note(&$vars) {
  * Implements preprocess().
  */
 function simple_node_importer_preprocess_mapping_help_text_info(&$vars) {
-  $vars['allowed_date_format'] = $vars['allowed_date_format'];
-  $vars['filepath'] = $vars['filepath'];
+  // $vars['allowed_date_format'] = $vars['fields']['allowed_date_format'];
+  $vars['filepath'] = $vars['fields']['filepath'];
 }
 
 /**

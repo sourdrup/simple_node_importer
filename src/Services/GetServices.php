@@ -9,7 +9,6 @@
  */
 
 namespace Drupal\simple_node_importer\Services;
-
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Url;
@@ -165,7 +164,6 @@ class GetServices {
     $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
     return $fieldsManager;
   }
-
   public function snp_getFields($fieldsManager, $type, $entity_type = NULL){
     $defaultFieldArr = ['title', 'body'];
     $haystack = 'field_';

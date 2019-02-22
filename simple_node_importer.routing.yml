@@ -24,13 +24,13 @@ simple_node_importer.mapping_form:
 #     _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_create_mapping_fields'
 #   requirements:
 #     _permission: 'admin access simple_node_importer'
-# simple_node_importer.delete_node:
-#   path: '/simplenode/{option}/{node}/delete'
-#   defaults:
-#     _title: 'Confirm Delete'
-#     _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_delete_node'
-#   requirements:
-#     _permission: 'admin access simple_node_importer'
+simple_node_importer.delete_node:
+  path: '/simplenode/{option}/{node}/delete'
+  defaults:
+    _title: 'Confirm Delete'
+    _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_delete_node'
+  requirements:
+    _permission: 'admin access simple_node_importer'
 # simple_node_importer.node_resolution_center:
 #   path: /nodeimporter/resolution-center
 #   defaults:

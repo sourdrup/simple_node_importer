@@ -12,10 +12,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Render\Element;
+use Drupal\user\PrivateTempStoreFactory;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 
 class SimpleNodeImporterMappingForm extends FormBase {
-
+   protected $tempStore;
    protected $services;
 
   /**
@@ -24,8 +26,9 @@ class SimpleNodeImporterMappingForm extends FormBase {
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
    */
-  public function __construct($GetServices) {
+  public function __construct($GetServices,PrivateTempStoreFactory $temp_store_factory) {
     $this->services = $GetServices;
+    $this->tempStore = $temp_store_factory->get('simple_node_importer');
   }
 
   /**
@@ -57,26 +60,37 @@ class SimpleNodeImporterMappingForm extends FormBase {
       // Options to be listed in File Column List.
       $headers = $this->services->simple_node_importer_getallcolumnheaders($uri);
       $selected_content_type = $node->get('field_select_content_type')->getValue()[0]['value'];
-      
       $entity_type = $node->getEntityTypeId();
-
+      $form_mode = 'default';
       $type = 'mapping';
       
-      $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_content_type, $type);
+      // $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_content_type, $type);
 
-      $allowed_date_format = NULL;
+      // /$allowed_date_format = NULL;
+      // $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load($entity_type . '.' . $selected_content_type . '.' . $form_mode);
+      // $widget_types = $form_display->getComponents();
+      //   foreach ($widget_types as $widget_type) {
+      //     if ($widget_type['type'] == "date_text") {
+      //       $allowed_date_format = $field['widget']['settings']['input_format'];
+      //       print_r($allowed_date_format);die;
+      //     }
+      //   }
+      
       //dsm($get_field_list);
       /*foreach ($get_field_list as $field) {
         if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
           $allowed_date_format = $field['widget']['settings']['input_format'];
         }
       }*/
-
+      // $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',
-        '#type' => 'item',
-        '#markup' => $outputtext,
+        '#fields' => array(
+          // 'allowed_date_format' => $allowed_date_format,
+          'filepath' => $filepath,
+        )
+    
       ];
       // Add theme table to the mapping form.
       $form['mapping_form']['#theme'] = 'simple_node_import_table';
@@ -129,13 +143,14 @@ class SimpleNodeImporterMappingForm extends FormBase {
         '#value' => t('Import'),
         '#weight' => 49,
       ];
-      // @FIXME
-      // l() expects a Url object, created from a route name or external URI.
-      // $form['cancel'] = array(
-      //       '#markup' => l(t('Cancel'), 'simplenode/' . arg(1) . '/' . arg(2) . '/delete', array('attributes' => array('class' => array('cancel-button')))),
-      //       '#weight' => 50,
-      //     );
-
+      $parameters = array('option' => $option,'node' =>$node->id());
+      $this->tempStore->set('parameters', $parameters);
+      $form['cancel'] = [
+        '#type' => 'submit',
+        '#value' => t('cancel'),
+        '#weight' => 3,
+        '#submit' => array('::snp_redirect_to_cancel')
+      ];
       return $form;
     }
   }
@@ -186,13 +201,12 @@ class SimpleNodeImporterMappingForm extends FormBase {
   }
 
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
-    $selected_content = arg(1);
     // Remove unnecessary values.
     $form_state->cleanValues();
     foreach ($form_state->getValues() as $key => $val) {
       $_SESSION['mapvalues'][$key] = $val;
     }
-    $form_state->set(['redirect'], 'nodeimport/' . $selected_content . '/' . arg(2) . '/importing');
+    $form_state->set(['redirect'], 'nodeimport/' . arg(1) . '/' . arg(2) . '/importing');
   }
 
   /**
@@ -200,9 +214,15 @@ class SimpleNodeImporterMappingForm extends FormBase {
    */
    public static function create(ContainerInterface $container) {
      return new static(
-       $container->get('snp.get_services')
+       $container->get('snp.get_services'),
+       $container->get('user.private_tempstore')
      );
    }
 
+   public function snp_redirect_to_cancel(array &$form, FormStateInterface $form_state)
+   {
+      $parameters = $this->tempStore->get('parameters');
+      $form_state->setRedirect('simple_node_importer.delete_node', $parameters);
+   }
 }
 ?>

@@ -68,6 +68,7 @@ class DefaultController extends ControllerBase {
   }
 
   public function simple_node_importer_delete_node($option, \Drupal\node\NodeInterface $node) {
+    print_r('redirecton successful');die;
     // Unset the session on cancel operation.
     if ($_SESSION['file_upload_session']) {
       unset($_SESSION['file_upload_session']);
