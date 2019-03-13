@@ -70,28 +70,22 @@ class SimpleNodeImporterMappingForm extends FormBase {
       // Options to be listed in File Column List.
       $headers = $this->services->simple_node_importer_getallcolumnheaders($uri);
       $selected_content_type = $node->get('field_select_content_type')->getValue()[0]['value'];
+      
       $entity_type = $node->getEntityTypeId();
-      $form_mode = 'default';
+
       $type = 'mapping';
       
-      // $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_content_type, $type);
+      $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_content_type, $type);
 
-      // /$allowed_date_format = NULL;
-      // $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load($entity_type . '.' . $selected_content_type . '.' . $form_mode);
-      // $widget_types = $form_display->getComponents();
-      //   foreach ($widget_types as $widget_type) {
-      //     if ($widget_type['type'] == "date_text") {
-      //       $allowed_date_format = $field['widget']['settings']['input_format'];
-      //       print_r($allowed_date_format);die;
-      //     }
-      //   }
-      
+      $allowed_date_format = NULL;
       //dsm($get_field_list);
       /*foreach ($get_field_list as $field) {
         if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
           $allowed_date_format = $field['widget']['settings']['input_format'];
         }
       }*/
+
+      //$outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
 
       // Add HelpText to the mapping form.
       $form['helptext'] = [
