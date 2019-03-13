@@ -14,11 +14,17 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing;
+use Drupal\Core\Session;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 
 
 class SimpleNodeImporterMappingForm extends FormBase {
 
    protected $services;
+   protected $sessionVariable;
+   protected $sessionManager;
+   protected $currentUser;
+   protected $entityTypeManager;
 
   /**
    * Constructs a Drupal\Component\Plugin\PluginBase object.
@@ -26,8 +32,12 @@ class SimpleNodeImporterMappingForm extends FormBase {
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
    */
-  public function __construct($GetServices) {
+  public function __construct($GetServices, \Drupal\Core\TempStore\PrivateTempStoreFactory  $SessionVariable, \Drupal\Core\Session\SessionManagerInterface $session_manager, \Drupal\Core\Session\AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager) {
     $this->services = $GetServices;
+    $this->sessionVariable = $SessionVariable->get('simple_node_importer');
+    $this->sessionManager = $session_manager;
+    $this->currentUser = $current_user;
+    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
@@ -46,16 +56,13 @@ class SimpleNodeImporterMappingForm extends FormBase {
     $file = \Drupal\file\Entity\File::load($fid);
     $uri = $file->getFileUri();
     $url = \Drupal\Core\Url::fromUri(file_create_url($uri))->toString();
-
-    // Set the session variable to false.
-    $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
     
     if (empty($node)) {
       $type = 'Simple Node Importer';
       $message = 'Node object is not valid.';
       \Drupal::logger($type)->error($message, []);
     }
-    elseif ($sessionVariable->get('file_upload_session') == FALSE) {
+    elseif ($this->sessionVariable->get('file_upload_session') == FALSE) {
       $response = new RedirectResponse('/node/add/simple-node');
       $response->send();
     }
@@ -78,32 +85,33 @@ class SimpleNodeImporterMappingForm extends FormBase {
         }
       }*/
 
+      //$outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
+
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',
-        '#type' => 'item',
-        '#markup' => $outputtext,
       ];
       // Add theme table to the mapping form.
       $form['mapping_form']['#theme'] = 'simple_node_import_table';
       // Mapping form.
-      $form['mapping_form']['title'] = [
-        '#type' => 'select',
-        '#title' => t('Title'),
-        '#options' => $headers,
-        '#empty_option' => t('Select'),
-        '#empty_value' => '',
-      ];
-
       foreach ($get_field_list as $key => $field) {
         // code...
-        if ($key != 'title') {   
-
-          $field_name = $field->get('field_name');
-          $field_label = $field->get('label');
+        if (method_exists ($field->getLabel() , 'render')) {
+          $form['mapping_form'][$key] = [
+            '#type' => 'select',
+            '#title' => $field->getLabel()->render(),
+            '#options' => $headers,
+            '#empty_option' => t('Select'),
+            '#empty_value' => '',
+          ];
+        }
+        else {
+          //print_r($field); exit;
+          $field_name = $field->getName();
+          $field_label = $field->getLabel();
           $field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name);
 
-          if ($field_info->get('cardinality') == -1 || $field_info->get('cardinality') > 1) {
+          if (!empty($field_info) && ($field_info->get('cardinality') == -1 || $field_info->get('cardinality') > 1)) {
             $form['mapping_form'][$key] = [
               '#type' => 'select',
               '#title' => $field_label,
@@ -126,9 +134,14 @@ class SimpleNodeImporterMappingForm extends FormBase {
           }
         }
       }
-      
+
       // Get the preselected values for form fields.
       $form = $this->services->simple_node_importer_getpreselectedvalues($form, $headers);
+
+      $form['snp_nid'] = [
+        '#type' => 'hidden',
+        '#value' => $node->id()
+      ];
 
       $form['import'] = [
         '#type' => 'submit',
@@ -197,33 +210,44 @@ class SimpleNodeImporterMappingForm extends FormBase {
 
   public function submitForm(array &$form, FormStateInterface $form_state) {
    
-    $parameters = \Drupal::request()->getpathInfo();
-    // Retrieve an array which contains the path pieces.
-    $path_args = explode('/', $parameters);
-
-    array_shift($path_args);
-
-    $selected_content = $path_args[1];
     // Remove unnecessary values.
     $form_state->cleanValues();
-    foreach ($form_state->getValues() as $key => $val) {
 
-      $_SESSION['mapvalues'][$key] = $val;
+    $haystack = 'snp_';
+
+    foreach ($form_state->getValues() as $key => $val) {
+      if (strpos($key, $haystack) === FALSE){
+        $mapvalues[$key] = $val;        
+      }
     }
 
-    $parameters = array('type' => $path_args[1],'node' => $path_args[2]);
+    $node_storage = $this->entityTypeManager->getStorage('node');
+    $file_storage = $this->entityTypeManager->getStorage('file');
 
-    $form_state->setRedirect('simple_node_importer.create_mapping_fields', $parameters);
+    $snp_nid = $form_state->getValue('snp_nid');
+
+    $node = $node_storage->load($snp_nid);
+
+    $bundleType = $node->get('field_select_content_type')->getValue()[0]['value'];
+    
+    $this->sessionVariable->set('mapvalues', $mapvalues);
+
+    $parameters = array('type' => $bundleType,'node' => $snp_nid);
+    
+    $form_state->setRedirect('simple_node_importer.confirm_importing', $parameters);
   }
 
   /**
    * {@inheritdoc}
    */
-   public static function create(ContainerInterface $container) {
-     return new static(
-       $container->get('snp.get_services')
-     );
-   }
-
+  public static function create(ContainerInterface $container) {
+   return new static(
+     $container->get('snp.get_services'),
+     $container->get('user.private_tempstore'),
+     $container->get('session_manager'),
+     $container->get('current_user'),
+     $container->get('entity_type.manager')
+   );
+  }
 }
 ?>

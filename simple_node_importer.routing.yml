@@ -18,11 +18,11 @@ simple_node_importer.mapping_form:
   requirements:
     _permission: 'admin access simple_node_importer'
 
-simple_node_importer.create_mapping_fields:
+simple_node_importer.confirm_importing:
   path: '/nodeimport/{type}/{node}/importing'
   defaults:
-    _title: 'Mappings Import'
-    _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_create_mapping_fields'
+    _title: 'Confirm Content Import for {type}'
+    _form: \Drupal\simple_node_importer\Form\SimpleNodeConfirmImportForm
   options:
     parameters:
       node:
@@ -34,7 +34,7 @@ simple_node_importer.delete_node:
   path: '/simplenode/{option}/{node}/delete'
   defaults:
     _title: 'Confirm Delete'
-    _controller: '\Drupal\simple_node_importer\Controller\DefaultController::simple_node_importer_delete_node'
+    _controller: '\Drupal\simple_node_importer\Controller\NodeImportController::simple_node_importer_delete_node'
   requirements:
     _permission: 'admin access simple_node_importer'
 # simple_node_importer.node_resolution_center:

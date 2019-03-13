@@ -73,55 +73,6 @@ require_once drupal_get_path('module', 'simple_node_importer') . '/includes/reso
 //   return $output;
 // }
 
-/**
- * Implements hook_menu().
- */
-/*function simple_node_importer_menu() {
-  $items = array();
-  $items['admin/config/development/snodeimport'] = array(
-    'title' => 'Simple Node Settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('simple_node_importer_config_form'),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['nodeimport/%/%node/mapping'] = array(
-    'title callback' => 'simple_node_importer_mapping_title',
-    'title arguments' => array(1, 2),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('simple_node_importer_mapping_form', 1, 2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['nodeimport/%/%node/importing'] = array(
-    'title' => 'Mappings Import',
-    'page callback' => 'simple_node_importer_create_mapping_fields',
-    'page arguments' => array(1, 2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['simplenode/%/%node/delete'] = array(
-    'title' => 'Confirm Delete',
-    'page callback' => 'simple_node_importer_delete_node',
-    'page arguments' => array(1, 2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  $items['admin/config/development/snodeimport/resolution-center'] = array(
-    'title' => 'Resolution Center',
-    'page callback' => 'simple_node_importer_node_resolution_center',
-    'access arguments' => array('admin access simple_node_importer'),
-    'file' => 'includes/resolution_center.inc',
-  );
-  $items['nodeimporter/resolution-center'] = array(
-    'title' => 'Resolution Center',
-    'page callback' => 'simple_node_importer_node_resolution_center',
-    'access arguments' => array('admin access simple_node_importer'),
-    'file' => 'includes/resolution_center.inc',
-  );
-  $items['nodeimporter/node/%node/download-csv'] = array(
-    'page callback' => 'simple_node_importer_resolution_center_download_csv',
-    'page arguments' => array(2),
-    'access arguments' => array('admin access simple_node_importer'),
-  );
-  return $items;
-}*/
 
 /**
  * Mapping form title callback.
@@ -344,33 +295,20 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
 }
 
 /**
- * Helper Function to delete the node on cancel mapping.
- */
-function simple_node_importer_delete_node($option, $node) {
-  // Unset the session on cancel operation.
-  if ($_SESSION['file_upload_session']) {
-    unset($_SESSION['file_upload_session']);
-  }
-  if ($node) {
-    $node->nid->delete();
-  }
-  drupal_goto('node/add/simple-node');
-}
-
-/**
  * Implements hook_theme().
  */
 function simple_node_importer_theme() {
   return array(
     'simple_node_import_table' => array(
       'render element' => 'form',
+      'function' => 'theme_simple_node_import_table',
     ),
     'content_info_note' => array(
       'template' => 'templates/content-info-note',
       'variables' => array('fields' => array()),
     ),
     'mapping_help_text_info' => array(
-      'template' => 'templates/mapping-help-text-info',
+      'template' => 'mapping-help-text-info',
       'variables' => array('fields' => array()),
     ),
   );
@@ -396,6 +334,7 @@ function simple_node_importer_preprocess_mapping_help_text_info(&$vars) {
  * Theme function to display form data.
  */
 function theme_simple_node_import_table($form) {
+ // print_r('dsbcsbdjh');die;
   // Table header information.
   $tableheader = array(
     array('data' => t('Content type Field(s)')),
@@ -408,7 +347,7 @@ function theme_simple_node_import_table($form) {
     // Hide field labels.
     $form['form'][$element_key]['#title_display'] = 'invisible';
     if (isset($form['form'][$element_key]['#title'])) {
-      $title = ($form['form'][$element_key]['#required']) ? $form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
+      $title = ($form['form'][$element_key]['#required']) ? t($form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>') : $form['form'][$element_key]['#title'];
     }
     $rows[] = array(
       'data' => array(
@@ -423,18 +362,14 @@ function theme_simple_node_import_table($form) {
       ),
     );
   }
-  // Use theme_table to produce our table.
-  // @FIXME
-// theme() has been renamed to _theme() and should NEVER be called directly.
-// Calling _theme() directly can alter the expected output and potentially
-// introduce security issues (see https://www.drupal.org/node/2195739). You
-// should use renderable arrays instead.
-// 
-// 
-// @see https://www.drupal.org/node/2195739
-// $output = theme('table', array('header' => $tableheader, 'rows' => $rows));
-
-  return $output;
+ 
+  $table = array(
+    '#type' => 'table',
+    '#header' => $tableheader,
+    '#rows' => $rows,
+  );
+  
+  return $output = drupal_render($table);
 }
 
 /**
