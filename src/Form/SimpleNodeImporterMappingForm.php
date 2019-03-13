@@ -85,8 +85,6 @@ class SimpleNodeImporterMappingForm extends FormBase {
         }
       }*/
 
-      //$outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
-
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',

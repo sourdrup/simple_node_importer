@@ -6,10 +6,12 @@
 namespace Drupal\simple_node_importer\Controller;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Routing;
 use Drupal\Core\Session;
+use Drupal\Core\Entity;
 use Drupal\node\Entity\Node;
 use Drupal\user\Entity\User;
 use Drupal\file\Entity\File;
@@ -30,7 +32,7 @@ class NodeImportController extends ControllerBase {
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
    */
-  public function __construct(\Drupal\simple_node_importer\Services $GetServices, \Drupal\Core\TempStore\PrivateTempStoreFactory  $SessionVariable, \Drupal\Core\Session\SessionManagerInterface $session_manager, \Drupal\Core\Session\AccountInterface $current_user) {
+  public function __construct($GetServices, \Drupal\Core\TempStore\PrivateTempStoreFactory  $SessionVariable, \Drupal\Core\Session\SessionManagerInterface $session_manager, \Drupal\Core\Session\AccountInterface $current_user) {
       $this->services = $GetServices;
       $this->sessionVariable = $SessionVariable->get('simple_node_importer');
       $this->sessionManager = $session_manager;
@@ -134,15 +136,14 @@ class NodeImportController extends ControllerBase {
     }
   }
 
-  public function simple_node_importer_delete_node($option, \Drupal\node\NodeInterface $node) {
-    // Unset the session on cancel operation.
-    if ($_SESSION['file_upload_session']) {
-      unset($_SESSION['file_upload_session']);
-    }
+  public function simple_node_importer_delete_node($option, $node) {
     if ($node) {
-      $node->id()->delete();
+      $storage_handler = \Drupal::entityTypeManager()->getStorage("node");
+      $entity = $storage_handler->load($node);
+      $storage_handler->delete(array($entity));
+      $response = new RedirectResponse('/node/add/simple_node');
+      return $response->send();
     }
-    drupal_goto('node/add/simple-node');
   }
 
   public function simple_node_importer_node_resolution_center() {
