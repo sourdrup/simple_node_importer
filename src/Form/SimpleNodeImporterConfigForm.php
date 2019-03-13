@@ -50,13 +50,8 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
     $config = $this->config('simple_node_importer.settings');
 
     $content_type_selected = [];
-    // @FIXME
-    // // @FIXME
-    // // This looks like another module's variable. You'll need to rewrite this call
-    // // to ensure that it uses the correct configuration object.
+    
     $content_type_select = $config->get('content_type_select');
-
-
 
     if (!empty($content_type_select)) {
       foreach ($content_type_select as $key => $value) {

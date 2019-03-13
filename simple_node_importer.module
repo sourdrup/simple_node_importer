@@ -286,22 +286,12 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
   $newNid = $form_state->getValue('nid');
   $selected_content = $form_state->getValue('field_select_content_type')[0]['value'];
 
-  $_SESSION['file_upload_session'] = TRUE;
+  // Set the session variable to false.
+  $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
+  $sessionVariable->set('file_upload_session', TRUE);
+
   $parameters = array('option' =>$selected_content,'node' => $newNid);
   $form_state->setRedirect('simple_node_importer.mapping_form', $parameters);
-}
-/**
- * Helper Function to delete the node on cancel mapping.
- */
-function simple_node_importer_delete_node($option, $node) {
-  // Unset the session on cancel operation.
-  if ($_SESSION['file_upload_session']) {
-    unset($_SESSION['file_upload_session']);
-  }
-  if ($node) {
-    $node->nid->delete();
-  }
-  drupal_goto('node/add/simple-node');
 }
 
 /**
@@ -357,7 +347,7 @@ function theme_simple_node_import_table($form) {
     // Hide field labels.
     $form['form'][$element_key]['#title_display'] = 'invisible';
     if (isset($form['form'][$element_key]['#title'])) {
-      $title = ($form['form'][$element_key]['#required']) ? $form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
+      $title = ($form['form'][$element_key]['#required']) ? t($form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>') : $form['form'][$element_key]['#title'];
     }
     $rows[] = array(
       'data' => array(
@@ -372,82 +362,14 @@ function theme_simple_node_import_table($form) {
       ),
     );
   }
-  // Use theme_table to produce our table.
-  // @FIXME
-// theme() has been renamed to _theme() and should NEVER be called directly.
-// Calling _theme() directly can alter the expected output and potentially
-// introduce security issues (see https://www.drupal.org/node/2195739). You
-// should use renderable arrays instead.
-// 
-// 
-// @see https://www.drupal.org/node/2195739
-// $output = theme('table', array('header' => $tableheader, 'rows' => $rows));
-$table = array(
-  '#type' => 'table',
-  '#header' => $tableheader,
-  '#rows' => $rows,
-);
-$output = drupal_render($table);
-
-  return $output;
-}
-
-/**
- * Import Mapping function to map the fields with file data.
- */
-function simple_node_importer_create_mapping_fields($type, $node) {
-  // Unset the session on batch start operation.
-  if (isset($_SESSION['file_upload_session']) && !empty($_SESSION['file_upload_session'])) {
-    unset($_SESSION['file_upload_session']);
-  }
-  $operations = array();
-  $map_values = $_SESSION['mapvalues'];
-  $csv_uri = $node->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]['uri'];
-  $handle = fopen($csv_uri, 'r');
-  $columns = array();
-  $columns = array_values(simple_node_importer_getallcolumnheaders($node->field_upload_csv[\Drupal\Core\Language\Language::LANGCODE_NOT_SPECIFIED][0]));
-  $record = array();
-  $session_fields = array_keys($map_values);
-  $i = 1;
-  while ($row = fgetcsv($handle)) {
-    if ($i == 1) {
-      $i++;
-      continue;
-    }
-    foreach ($row as $i => $field) {
-      $column1 = str_replace(' ', '_', strtolower($columns[$i]));
-      foreach ($session_fields as $field_name) {
-        if ($map_values[$field_name] == $column1) {
-          $record[$field_name] = $field;
-        }
-        else {
-          if (is_array($map_values[$field_name])) {
-            $multiple_fields = array_keys($map_values[$field_name]);
-            foreach ($multiple_fields as $i => $m_fields) {
-              if ($m_fields == $column1) {
-                $record[$field_name][$i] = $field;
-              }
-            }
-          }
-        }
-      }
-    }
-    $record['nid'] = $node->nid;
-    $record['type'] = $type;
-    $operations[] = array('simple_node_importer_make_nodes', array($record));
-  }
-  $batch = array(
-    'title' => t('Creating Nodes Finally.'),
-    'operations' => $operations,
-    'finished' => 'simple_node_importer_sni_batch_finished',
-    'init_message' => t('Node Creation Is Starting.'),
-    'progress_message' => t('Processed @current out of @total.'),
-    'error_message' => t('Node creation has encountered an error.'),
+ 
+  $table = array(
+    '#type' => 'table',
+    '#header' => $tableheader,
+    '#rows' => $rows,
   );
-  // Set the batch operation.
-  batch_set($batch);
-  batch_process('node/' . $node->nid);
-  fclose($handle);
+  
+  return $output = drupal_render($table);
 }
 
 /**
