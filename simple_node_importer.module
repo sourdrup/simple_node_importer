@@ -78,7 +78,7 @@ require_once drupal_get_path('module', 'simple_node_importer') . '/includes/reso
  * Mapping form title callback.
  */
 function simple_node_importer_mapping_title($option, $node) {
-  $ctype_name = node_type_get_name($option);
+  $ctype_name = node_type_get_label($option);
   /*Add custom breadcrumb for the mapping page.
   @FIXME
   l() expects a Url object, created from a route name or external URI.
@@ -180,7 +180,7 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
  * Implements hook_form_alter().
  */
 function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state, $form_id) {
-
+//dsm($form_id);
   if ($form_id == 'node_simple_node_form') {
 
     // Set the session variable to false.
@@ -254,6 +254,60 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
     $form['#submit'][] = 'simple_node_importer_config_form_submit';
   }
 
+
+  $refKey = \Drupal::request()->get('refkey');
+  $bundleName = \Drupal::request()->get('bundle');
+  $bundleFormId = 'node_'.$bundleName.'_form';
+  $excludeArr = ['type', 'reference'];
+  if($form_id == $bundleFormId && !empty($refKey)){
+      $failedRow = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC(NULL, $refKey);
+
+      foreach($failedRow as $rowVal){
+        foreach($rowVal as $fieldKey => $fieldVal){
+          if(!in_array($fieldKey, $excludeArr)){
+            $fieldWidget = $form[$fieldKey]['widget'];
+            $entity_type = 'node';
+
+            $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
+
+            if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
+              foreach($fieldSetVal['bugField'] as $err){
+                $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
+                \Drupal::messenger()->addStatus($msg);
+              }            
+              $form[$fieldKey] = $fieldSetVal['fieldWidget'];
+            }
+            else{
+              $form[$fieldKey] = $fieldSetVal;
+            }         
+          }
+        }
+      }
+
+      $form['refkey'] = [
+        '#type' => 'hidden',
+        '#value' => $refKey
+      ];
+
+      $form['actions']['submit']['#submit'][] = 'update_rc_table_form_submit';
+  }
+}
+
+
+function update_rc_table_form_submit($form, FormStateInterface &$form_state){
+  $refKey = $form_state->getValue('refkey');
+  
+  if($refKey){
+    $connection = \Drupal\Core\Database\Database::getConnection();
+    $num_deleted = $connection->delete('node_resolution')
+    ->condition('reference', $refKey)
+    ->execute();
+    if($num_deleted){
+      $msg = t("Resolution Center Updated");
+      \Drupal::messenger()->addStatus($msg);
+      $form_state->setRedirect('simple_node_importer.node_resolution_center');
+    }
+  }
 }
 
 /**

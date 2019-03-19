@@ -96,6 +96,7 @@ class SimpleNodeImporterMappingForm extends FormBase {
       ];
       // Add theme table to the mapping form.
       $form['mapping_form']['#theme'] = 'simple_node_import_table';
+      
       // Mapping form.
       foreach ($get_field_list as $key => $field) {
         // code...

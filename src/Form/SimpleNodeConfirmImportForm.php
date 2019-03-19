@@ -130,7 +130,7 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	      'finished' => '\Drupal\simple_node_importer\Controller\NodeImportController::nodeImportBatchFinished',
 	      'init_message' => t('Initialializing content importing.'),
 	      'progress_message' => t('Processed @current out of @total.'),
-	      'error_message' => t('Node creation has encountered an error.'),
+	      'error_message' => t('Node creation has encountered an error.')
 	    ];
 	    
 	    // Set the batch operation.
