@@ -47,6 +47,7 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
 			'#type' => 'hidden',
 			'#value' => $node->id()
 		];
+		$parameters = array('option' => $option,'node' =>$node->id());
 		return parent::buildForm($form, $form_state,$parameters);
 	}
 
@@ -146,7 +147,6 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
 	* {@inheritdoc}
 	*/
 	public function getCancelUrl() {
-		$bundleType = $this->node->get('field_select_content_type')->getValue()[0]['value'];
 		$nid = $this->node->id();
 		$parameters = $this->sessionVariable->get('parameters');
 		return new Url('simple_node_importer.user_mapping_form', $parameters);

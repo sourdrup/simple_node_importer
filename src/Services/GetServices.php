@@ -301,6 +301,7 @@ class GetServices {
           $key = key($field_definition[$field_machine_name]->getSetting('handler_settings')['target_bundles']);
         }
         
+        
         $fieldProperties = $field_definition[$field_machine_name];
         $fieldLabel = $field_info->getLabel();
         $fieldType = $field_info->getType();

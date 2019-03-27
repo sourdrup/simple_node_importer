@@ -136,13 +136,6 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
     $field_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $option_selected, $type);
     if($entity_type = 'node'){
     $output = "<div class='content-type-info'>";
-    }
-    else if ( $entity_type = 'user'){
-      $output = "<div class='user-info'>";
-    }
-    else{
-      $output = "<div class='taxonomy-info'>";
-    }
       foreach($field_array as $key => $fieldArr){
         if($key == 'required'){
           # code...
@@ -160,7 +153,7 @@ function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxRespon
         $output .= "</ul></div>";
       }
     $output .= "</div>";
-    
+    }
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
   }
   else{
@@ -200,7 +193,7 @@ function snpentityAjaxBreifCallback ($form, FormStateInterface $form_state):Ajax
 
   if ($entity_type == "user") {
     $type = 'import';
-    $userfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $content_type, $type);
+    $userfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type,'user', $type);
     $output = "<div class='user-info'>";
       foreach($userfield_array as $key => $fieldArr){
         if($key == 'required'){
@@ -389,7 +382,12 @@ function update_rc_table_form_submit($form, FormStateInterface &$form_state){
  */
 function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
   if ($node->getType() == "simple_node") {
+    if($node->field_select_entity_type[0]->value == 'node'){
     $selected_content_type = $node->field_select_content_type[0]->value;
+    }
+    else{
+      $selected_content_type = $node->field_select_entity_type[0]->value;
+    }
     $created_date = date('mdY-H:i', $node->getCreatedTime());
     $node->setTitle('Import-' . $selected_content_type . '-' . $created_date);
   }
@@ -431,7 +429,6 @@ function simple_node_importer_template_submit_handler(&$form, FormStateInterface
  */
 function simple_node_importer_form_submit_redirect_handler($form, &$form_state) {
   $newNid = $form_state->getValue('nid');
-  $selected_content = $form_state->getValue('field_select_content_type')[0]['value'];
 
   // Set the session variable to false.
   $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
@@ -441,6 +438,7 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
     $form_state->setRedirect('simple_node_importer.user_mapping_form', $parameters);
   }
   elseif($form_state->getValue('field_select_entity_type')[0]['value'] == 'node'){
+    $selected_content = $form_state->getValue('field_select_content_type')[0]['value'];
     $parameters = array('option' =>$selected_content,'node' => $newNid);
     $form_state->setRedirect('simple_node_importer.node_mapping_form', $parameters);
   }

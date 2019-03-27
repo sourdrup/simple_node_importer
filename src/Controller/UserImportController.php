@@ -24,7 +24,7 @@ protected $services;
 protected $sessionVariable;
 protected $sessionManager;
 protected $currentUser;
-public function UserImport($records) {
+public static function UserImport($records) {
     $entity_type = 'user';
     
     foreach ($records as $record) {
