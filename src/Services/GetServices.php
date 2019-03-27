@@ -247,7 +247,7 @@ class GetServices {
 
   public function snp_getFields($fieldsManager, $type, $entity_type = NULL){
    
-    $defaultFieldArr = ['title', 'body', 'name', 'mail', 'status', 'roles'];
+    $defaultFieldArr = ['title', 'body', 'name', 'mail', 'status', 'roles', 'uid'];
 
     $haystack = 'field_';
       foreach ($fieldsManager as $key  => $field ){
@@ -686,7 +686,7 @@ class GetServices {
 
   public static function generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundle){
 
-    $excludeFieldArr = ['type', 'nid', 'uid', 'title', 'reference'];
+    $excludeFieldArr = ['type', 'nid', 'uid', 'title', 'reference', 'status'];
     $flag = TRUE;
     $key = 0;
     if(!in_array($fieldKey, $excludeFieldArr)){
@@ -726,8 +726,9 @@ class GetServices {
 
         case 'entity_reference':
           # code...
-          $target_bundle = $fieldWidget[0]['target_id']['#title'];
+          $target_bundle = Key($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']);
           $target_type = $fieldWidget[0]['target_id']['#target_type'];
+        
 
           if($target_type == "taxonomy_term"){
             if(is_array($fieldVal) && !empty($fieldVal)){
@@ -955,6 +956,7 @@ class GetServices {
 
 
   public static function getFieldInfo($entity_type, $fieldKey, $bundle){
+    
     $field_info = FieldStorageConfig::loadByName($entity_type, $fieldKey);
 
     $entityManager = \Drupal::service('entity_field.manager');
@@ -962,7 +964,8 @@ class GetServices {
     $fieldStorageDefinition = $entityManager->getFieldStorageDefinitions($entity_type, $bundle);
     
     $fieldProperties = $field_definition[$fieldKey];
-    
+  
+
     $fieldLabel = $field_info->getLabel();
     $fieldType = $field_info->getType();
     

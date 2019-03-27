@@ -50,7 +50,6 @@ class NodeImportController extends ControllerBase {
 
     $user = "";
     $entity_type = 'node';
-    
     foreach ($records as $record) {
       //get user details if exists otherwse create
       if(!empty($record['uid']) && filter_var($record['uid'], FILTER_VALIDATE_EMAIL)){
@@ -63,12 +62,12 @@ class NodeImportController extends ControllerBase {
       else{
         $uid = $user;
       }
-
+      
       $node_data = [
         'type' => $record['type'],
         'title' => !empty($record['title']) ? $record['title'] : ($batch_result['result'][] = $record),
         'uid' => isset($uid) ? $uid : 1,
-        'status' => TRUE,
+        'status' => ($record['status'] == 1 || $record['status'] == TRUE) ? TRUE : FALSE,
       ];
 
       $field_names = array_keys($record);
@@ -147,7 +146,6 @@ class NodeImportController extends ControllerBase {
  * Add data to node resolution table.
  */
   public static function addFailedRecordsInRC($result) {
-
     if (isset($result['data']) && !empty($result['data'])) {
 
       $import_status = array(
