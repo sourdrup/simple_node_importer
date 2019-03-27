@@ -4,6 +4,7 @@ status: true
 dependencies:
     config:
         - field.field.node.simple_node.field_select_content_type
+        - field.field.node.simple_node.field_select_entity_type
         - field.field.node.simple_node.field_upload_csv
         - node.type.simple_node
     module:
@@ -40,4 +41,13 @@ content:
         settings:
             progress_indicator: throbber
         third_party_settings: {  }
+
+    field_select_entity_type:
+        label: hidden
+        type: options_select
+        region: content
+        weight: 1
+        settings: {  }
+        third_party_settings: {  }
+        
 hidden: {  }

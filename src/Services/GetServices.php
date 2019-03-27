@@ -14,6 +14,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
+use Drupal\taxonomy\Entity\Term;
 use Drupal\user\Entity\User;
 use Drupal\file\Entity\File;
 
@@ -56,14 +57,22 @@ class GetServices {
 
     return $content_types;
   }
-  public function snp_select_create_csv($content_type) {
+  
+  public function snp_select_create_csv($entity_type, $content_type) {
     $csv = array();
     $type = 'csv';
-    $labelarray = $this->snp_get_field_list($entity_type = 'node',$content_type, $type);
-    foreach ($labelarray as $key => $value) {
-     $csv[] =  $value;
+    if($entity_type == 'taxonomy'){
+      $csv = ['Vocabolary','Term1','Term2','Term3','Term4'];
+      $filename = $entity_type . '_template.csv';
     }
-    $filename = $content_type . '_template.csv';
+    else{
+      $labelarray = $this->snp_get_field_list($entity_type,$content_type, $type);
+      foreach ($labelarray as $key => $value) {
+        $csv[] =  $value;
+      }
+      $filename = $content_type . '_template.csv';
+    }
+
   
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header('Content-Description: File Transfer');
@@ -71,7 +80,7 @@ class GetServices {
     header("Content-Disposition: attachment; filename={$filename}");
     header("Expires: 0");
     header("Pragma: public");
-     $fh = @fopen('php://output', 'w');
+    $fh = @fopen('php://output', 'w');
   
     // Put the data into the stream.
     fputcsv($fh, $csv);
@@ -79,6 +88,7 @@ class GetServices {
     // Make sure nothing else is sent, our file is done.
     exit;
   }
+  
   public function checkAvailablity($nodeType = 'simple_node'){
     $nodeTypes = \Drupal\node\Entity\NodeType::loadMultiple();
     foreach ($nodeTypes as $key => $value) {
@@ -92,6 +102,7 @@ class GetServices {
       return FALSE;      
     }
   }
+
   public function create_simple_node_import_table($form) {
     // Table header information.
     $form = $form['mapping_form'];
@@ -123,6 +134,7 @@ class GetServices {
       }
     return $tableparameters = array($rows,$tableheader);
   }
+
   public function simple_node_importer_getallcolumnheaders($fileuri) {
     $handle = fopen($fileuri, 'r');
     $row = fgetcsv($handle);
@@ -149,6 +161,71 @@ class GetServices {
     }
   }
 
+  public function simple_node_importer_createTaxonomy($nid){
+    $node = Node::load($nid);
+    $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
+    $file = \Drupal\file\Entity\File::load($fid);
+    $uri = $file->getFileUri();
+    $url = \Drupal\Core\Url::fromUri(file_create_url($uri))->toString();
+    $handle = fopen($url, 'r');
+    while($row = fgetcsv($handle)){
+      for($i = 0;$i <=sizeof($row)-1;$i++){
+        $name = $row[$i];
+        if(empty($name)){
+          continue;
+        }
+        if($i == 0){
+          $vid = strtolower(preg_replace('/\s+/', '_', $name));
+          $vocabularies = \Drupal\taxonomy\Entity\Vocabulary::loadMultiple();
+          if (!isset($vocabularies[$vid])){
+            $vocabulary = \Drupal\taxonomy\Entity\Vocabulary::create(array(
+              'vid' => $vid,
+              'description' => '',
+              'name' => $name,
+              ));
+              $vocabulary->save();
+          }
+        }
+        else{
+          $termArray = [
+            'name' => $name,
+            'vid' => $vid
+            ];
+          $termid = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
+          if($i == 1){
+            if(empty($termid)){
+		          $term = Term::create($termArray)->save();
+	          }             
+          }
+          else{
+            $parent = $row[$i-1];
+            $termArray = [
+              'name' => $parent,
+              'vid' => $vid
+              ];
+            $termexist = 0;
+            $parenttermid = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
+            $childterms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadChildren(key($parenttermid));
+            foreach($childterms as $childterm){
+              if($childterm->getName() == $name){
+                  $termexist = 1;
+              }
+            }
+            if($termexist == 0){
+              if(!empty($parenttermid )) {
+		            $term = Term::create(array(
+                  'parent' => key($parenttermid),
+                  'name' => $name,
+                  'vid' => $vid,
+                  ))->save();
+	            }
+            }
+          }
+        }
+      }
+    }
+    drupal_set_message('Taxonomies are created successfully');
+  }
   public function simple_node_importer_getpreselectedvalues($form, $headers) {
     foreach ($form['mapping_form'] as $field => $attributes) {
       if(is_array($attributes)){
@@ -167,8 +244,11 @@ class GetServices {
     $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
     return $fieldsManager;
   }
+
   public function snp_getFields($fieldsManager, $type, $entity_type = NULL){
-    $defaultFieldArr = ['title', 'body', 'uid'];
+   
+    $defaultFieldArr = ['title', 'body', 'name', 'mail', 'status', 'roles'];
+
     $haystack = 'field_';
       foreach ($fieldsManager as $key  => $field ){
         if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
@@ -206,8 +286,9 @@ class GetServices {
   * Checks the widget type of each field.
   */
   public function checkFieldWidget($field_names, $data, $node, $entity_type) {
-   
-    $excludeFieldArr = ['type', 'nid', 'uid', 'title'];
+
+    $excludeFieldArr = ['name', 'mail','status','roles','nid','type', 'uid', 'title'];
+
     $flag = TRUE;
     foreach ($field_names as $field_machine_name) {
       if(!in_array($field_machine_name, $excludeFieldArr)){

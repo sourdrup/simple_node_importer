@@ -2,17 +2,17 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.storage.node.field_select_content_type
+    - field.storage.node.field_select_entity_type
     - node.type.simple_node
   module:
     - options
-id: node.simple_node.field_select_content_type
-field_name: field_select_content_type
+id: node.simple_node.field_select_entity_type
+field_name: field_select_entity_type
 entity_type: node
 bundle: simple_node
-label: Select Content Type
+label: 'Select Entity Type'
 description: ''
-required: false
+required: true
 translatable: false
 default_value: {  }
 default_value_callback: ''

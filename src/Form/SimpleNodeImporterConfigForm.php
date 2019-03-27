@@ -52,6 +52,8 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
     $content_type_selected = [];
     
     $content_type_select = $config->get('content_type_select');
+    $entity_type_options = array('node' => 'node','user' => 'user','taxonomy' =>'taxonomy');
+
 
     if (!empty($content_type_select)) {
       foreach ($content_type_select as $key => $value) {
@@ -60,13 +62,35 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
         }
       }
     }
-    
+    $form['fieldset_entity_type'] = [
+      '#type' => 'fieldset',
+      '#title' => t('entity type settings'),
+      '#weight' => 1,
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+    ];
+    $form['fieldset_entity_type']['entity_type_select'] = [
+      '#type' => 'checkboxes',
+      '#title' => t('Select entity type'),
+      '#default_value' => $config->get('entity_type_select'),
+      '#options' => $entity_type_options,
+      '#description' => t('Configuration for the entity type to be selected.'),
+      '#required' => FALSE,
+    ];
+
     $form['fieldset_content_type'] = [
       '#type' => 'fieldset',
       '#title' => t('Content type settings'),
       '#weight' => 1,
       '#collapsible' => TRUE,
       '#collapsed' => FALSE,
+      '#states' => array(
+        'visible' => array(
+          ':input[name="entity_type_select[node]"]' => array(
+              array('checked' => TRUE),
+          ),
+        ),
+      )
     ];
 
     $form['fieldset_content_type']['content_type_select'] = [
@@ -122,7 +146,8 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('simple_node_importer.settings');
    
-    $config->set('content_type_select', $form_state->getValue('content_type_select'))
+    $config->set('entity_type_select', $form_state->getValue('entity_type_select'))
+    ->set('content_type_select', $form_state->getValue('content_type_select'))
     ->set('simple_node_importer_allow_add_term', $form_state->getValue('simple_node_importer_allow_add_term'))
     ->set('node_delete', $form_state->getValue('node_delete'))->save();
           

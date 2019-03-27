@@ -16,7 +16,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 /**
  * Defines a confirmation form to confirm deletion of something by id.
  */
-class SimpleNodeConfirmImportForm extends ConfirmFormBase {
+class SimpleUserConfirmImportForm extends ConfirmFormBase {
 
 	protected $services;
    	protected $sessionVariable;
@@ -41,29 +41,29 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	/**
 	* {@inheritdoc}
 	*/
-	public function buildForm(array $form, FormStateInterface $form_state, string $type = NULL,NodeInterface $node = NULL) {
-		$this->node = $node;
-		$form['snp_nid'] = [
+	public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL, \Drupal\node\NodeInterface $node = NULL) {
+        $this->node = $node;
+        $form['snp_nid'] = [
 			'#type' => 'hidden',
 			'#value' => $node->id()
 		];
-		return parent::buildForm($form, $form_state);
+		return parent::buildForm($form, $form_state,$parameters);
 	}
 
 	/**
 	* {@inheritdoc}
 	*/
 	public function submitForm(array &$form, FormStateInterface $form_state) {
+		//print_r($form_state->getValues()); exit;
 	    // Remove unnecessary values.
 	    $form_state->cleanValues();
-
-	    $haystack = 'snp_';
-
-	    foreach ($form_state->getValues() as $key => $val) {
-	      if (strpos($key, $haystack) === FALSE){
-	        $mapvalues[$key] = $val;        
-	      }
-	    }
+	    // $haystack = 'snp_';
+			// print_r($form_state->getValues());die;
+	    // foreach ($form_state->getValues() as $key => $val) {
+	    //   if (strpos($key, $haystack) === FALSE){
+	    //     $mapvalues[$key] = $val;        
+	    //   }
+	    // }
 
 	    $node_storage = $this->entityTypeManager->getStorage('node');
 	    $file_storage = $this->entityTypeManager->getStorage('file');
@@ -72,31 +72,29 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 
 	    $node = $node_storage->load($snp_nid);
 
-	    $bundleType = $node->get('field_select_content_type')->getValue()[0]['value'];
-
 	    // Unset the session on batch start operation.
 	    /*if (!empty($this->sessionVariable->get('file_upload_session'))) {
 	      $this->sessionVariable->delete('file_upload_session');
 	    }*/
 	    $operations = [];
-	    $map_values = $this->sessionVariable->get('mapvalues');
+			$map_values = $this->sessionVariable->get('mapvalues');
 	    $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
 	    $file = $file_storage->load($fid);
 	    $csv_uri = $file->getFileUri();
-	    $handle = fopen($csv_uri, 'r');
+			$handle = fopen($csv_uri, 'r');
 	    $columns = [];
 	    $columns = array_values($this->services->simple_node_importer_getallcolumnheaders($csv_uri));
 	    $record = [];
-	    $map_fields = array_keys($map_values);
-	    $i = 1;
+			$map_fields = array_keys($map_values);
+			$i = 1;
+			$records = array();
 	    while ($row = fgetcsv($handle)) {
 	      if ($i == 1) {
-	        $i++;
+					$i++;
 	        continue;
 	      }
-	      	    
-	      foreach ($row as $k => $field) {
-	        $column1 = str_replace(' ', '_', strtolower($columns[$k]));
+	      foreach ($row as $i => $field) {
+	        $column1 = str_replace(' ', '_', strtolower($columns[$i]));
 	        foreach ($map_fields as $field_name) {
 	          if ($map_values[$field_name] == $column1) {
 	            $record[$field_name] = $field;
@@ -104,45 +102,44 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	          else {
 	            if (is_array($map_values[$field_name])) {
 	              $multiple_fields = array_keys($map_values[$field_name]);
-	              foreach ($multiple_fields as $k => $m_fields) {
+	              foreach ($multiple_fields as $i => $m_fields) {
 	                if ($m_fields == $column1) {
-	                  $record[$field_name][$k] = $field;
+	                  $record[$field_name][$i] = $field;
 	                }
 	              }
 	            }
 	          }
 	        }
-	      }
-	      $record['nid'] = $node->id();
-	      $record['type'] = $bundleType;
-	      $records[] = $record;
-	    }
-	    
+				}
+				$record['nid'] = $node->id();
+	      $record['type'] = 'user';
+				$records[] = $record;
+			}
 	    // Preapring batch parmeters to be execute.
 	    $batch = [
-	      'title' => t('Importing content to :bundleType.', array(':bundleType' => $bundleType)),
+	      'title' => t('Importing User'),
 	      'operations' => [
 	          [
-	            '\Drupal\simple_node_importer\Controller\NodeImportController::simpleNodeCreate',
+	            '\Drupal\simple_node_importer\Controller\UserImportController::UserImport',
 	            [$records],
 	          ],
 	       ],
-	      'finished' => '\Drupal\simple_node_importer\Controller\NodeImportController::nodeImportBatchFinished',
-	      'init_message' => t('Initialializing content importing.'),
+	      'finished' => '\Drupal\simple_node_importer\Controller\UserImportController::UserImport',
+	      'init_message' => t('Initialializing User importing.'),
 	      'progress_message' => t('Processed @current out of @total.'),
-	      'error_message' => t('Node creation has encountered an error.')
+	      'error_message' => t('User creation has encountered an error.'),
 	    ];
-	    
 	    // Set the batch operation.
 	    batch_set($batch);
-	    fclose($handle);
+			fclose($handle);
+		
 	}
 
 	/**
 	* {@inheritdoc}
 	*/
 	public function getFormId() : string {
-		return "simple_node_confirm_importing_form";
+		return "simple_user_confirm_importing_form";
 	}
 
 	/**
@@ -151,8 +148,8 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	public function getCancelUrl() {
 		$bundleType = $this->node->get('field_select_content_type')->getValue()[0]['value'];
 		$nid = $this->node->id();
-		$parameters = array('option' => $bundleType,'node' => $nid);
-		return new Url('simple_node_importer.node_mapping_form', $parameters);
+		$parameters = $this->sessionVariable->get('parameters');
+		return new Url('simple_node_importer.user_mapping_form', $parameters);
 	}
 
 	/**
@@ -160,7 +157,7 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	*/
 	public function getQuestion() {
 
-		$critical_info = "<p class='confirmation-info'>If email id's provided in the 'Authored By' column of your CSV match the existing users in the system, then data will be automatically imported. If not, the users will have to be created before importing the data.</p><p>Do you want to continue?</p>";
+		$critical_info = "<p class='confirmation-info'></p><p>Do you want to continue?</p>";
 
 		return t($critical_info);
 	}

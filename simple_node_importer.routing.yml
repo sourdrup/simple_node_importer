@@ -6,7 +6,7 @@ simple_node_importer.config_form:
   requirements:
     _permission: 'admin access simple_node_importer'
 
-simple_node_importer.mapping_form:
+simple_node_importer.node_mapping_form:
   path: '/nodeimport/{option}/{node}/mapping'
   defaults:
     # _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
@@ -15,6 +15,37 @@ simple_node_importer.mapping_form:
     parameters:
       node:
         type: entity:node
+  requirements:
+    _permission: 'admin access simple_node_importer'
+
+simple_node_importer.user_mapping_form:
+  path: '/nodeimport/{option}/{node}/usermapping'
+  defaults:
+    # _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
+    _form: \Drupal\simple_node_importer\Form\SimpleUserImporterMappingForm
+  options:
+    parameters:
+      node:
+        type: entity:node
+  requirements:
+    _permission: 'admin access simple_node_importer'
+
+simple_node_importer.user_confirmation_form:
+  path: '/nodeimport/{option}/{node}/userconfirm'
+  defaults:
+    _form: \Drupal\simple_node_importer\Form\SimpleUserConfirmImportForm
+  options:
+    parameters:
+      node:
+        type: entity:node
+  requirements:
+    _permission: 'admin access simple_node_importer'
+
+simple_node_importer.import_user:
+  path: '/simplenode/{option}/{node}/delete'
+  defaults:
+    _title: 'User Import'
+    _controller: '\Drupal\simple_node_importer\Controller\UserImportController::UserImport'
   requirements:
     _permission: 'admin access simple_node_importer'
 
