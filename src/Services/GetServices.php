@@ -411,23 +411,41 @@ class GetServices {
     }
   }
 
-  public function getUserByEmail(string $email){
+  public function getUserByEmail(string $email, $op = NULL){
     //load user object
+    // $op could be 'new', 'admin', 'current', 'content_validate'
     $userObj = user_load_by_mail($email);
+
     if($userObj){
       return $userObj;
     }
-    else{
-      return $this->createUserByEmail($email);
+    else if($op == 'new'){
+      return $this->createNewUser($email);
     }
+    else if($op == 'admin'){
+      $adminUid = 1;
+      return $adminUid;
+    }
+    else if($op == 'current'){
+      $userObj = \Drupal::currentUser();
+      return $userObj; 
+    }
+    else if($op == 'content_validate'){
+      return NULL;
+    }
+    
 
   }
 
-  public function createUserByEmail(string $email){
+  public function createNewUser(string $email = NULL, string $uname = NULL){
 
-    $username = explode('@', $email);
-
-    $uname = $this->getUserByUsername($username[0]);
+    if(!empty($email)){
+      $username = explode('@', $email);
+      $uname = $this->getUserByUsername($username[0]);
+    }
+    else if(!empty($uname)){
+      $email = '';
+    }    
 
     $user = User::create([
 
@@ -446,18 +464,35 @@ class GetServices {
     return $user->save();    
   }
 
-  public function getUserByUsername(string $uname){
-    $uids = \Drupal::entityQuery('user')
+  public function getUserByUsername(string $uname, $op = NULL){
+
+    // $op could be 'new', 'admin', 'current', 'content_validate'
+    $today = date('dmy');
+    
+    $userId = \Drupal::entityQuery('user')
         ->condition('name', $uname)
         ->range(0, 1)
         ->execute();
 
-    $today = date('dmy');
-    if(!empty($uids)){
-      return $uname.$today;
+    if(!empty($userId)){
+      return $userId;
+    }
+    else if($op == 'new'){
+      return $this->createNewUser(NULL, $uname);
+    }
+    else if($op == 'admin'){
+      $adminUid = 1;
+      return $adminUid;
+    }
+    else if($op == 'current'){
+      $userObj = \Drupal::currentUser();
+      return $userObj; 
+    }
+    else if($op == 'content_validate'){
+      return NULL;
     }
     else{
-      return $uname;
+      return $uname.$today;
     }
   }
 
@@ -535,35 +570,43 @@ class GetServices {
       if(is_array($userEmail)){
         foreach($userEmail as $email){
           $flag = $this->getFieldValidation('email', $email);
-        }
-        if($flag){
-          foreach($userEmail as $email){
-            $user = $this->getUserByEmail($email);
+          if($flag){
+            $user = $this->getUserByEmail($email, 'content_validate');
             if($user && !is_integer($user)){
               $dataRow[] = $user->id();
             }
             else{
-              $dataRow[] = $user;
+              return $flag = FALSE;
+            }
+          }else{
+            $uid = $this->getUserByUsername($email, 'content_validate');
+            if($uid){
+              $dataRow[] = $uid;
+            }
+            else{
+              return $flag = FALSE;
             }
           }
         }
-        else{
-          return $flag = FALSE;
-        }
       }
       else{
-        $flag = $this->getFieldValidation('email', $userEmail);
-        if($flag){          
-          $user = $this->getUserByEmail($userEmail);
+       $flag = $this->getFieldValidation('email', $email);
+        if($flag){
+          $user = $this->getUserByEmail($email, 'content_validate');
           if($user && !is_integer($user)){
             $dataRow = $user->id();
           }
           else{
-            $dataRow = $user;
-          }        
-        }
-        else{
-          return $flag = FALSE;
+            return $flag = FALSE;
+          }
+        }else{
+          $uid = $this->getUserByUsername($email, 'content_validate');
+          if($uid){
+            $dataRow = $uid;
+          }
+          else{
+            return $flag = FALSE;
+          }
         }
       }
     }

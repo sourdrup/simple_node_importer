@@ -50,11 +50,31 @@ class NodeImportController extends ControllerBase {
 
     $user = "";
     $entity_type = 'node';
+    $userAutoCreate = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_user_autocreate');
+    
     foreach ($records as $record) {
-      //get user details if exists otherwse create
-      if(!empty($record['uid']) && filter_var($record['uid'], FILTER_VALIDATE_EMAIL)){
-        $user = \Drupal::service('snp.get_services')->getUserByEmail($record['uid']);
+
+      $batch_result['result'] = '';
+      if(!empty($record['uid'])){
+        if(filter_var($record['uid'], FILTER_VALIDATE_EMAIL)){
+          $user = \Drupal::service('snp.get_services')->getUserByEmail($record['uid'], $userAutoCreate);
+        }
+        else{
+          $user = \Drupal::service('snp.get_services')->getUserByUsername($record['uid'], $userAutoCreate);
+        }
       }
+      else{
+        if($userAutoCreate == 'admin'){
+          $user = 1;
+        }
+        else if($userAutoCreate == 'current'){
+          $user = \Drupal::currentUser(); 
+        }
+        else{
+          $batch_result['result'] = $record;
+        }
+      }
+
       //assigning user id to node
       if($user && !is_integer($user)){
         $uid = $user->id();
@@ -62,17 +82,23 @@ class NodeImportController extends ControllerBase {
       else{
         $uid = $user;
       }
-      
+
+      if(empty($record['title'])){
+        $batch_result['result'] = $record;
+      }
+
       $node_data = [
         'type' => $record['type'],
-        'title' => !empty($record['title']) ? $record['title'] : ($batch_result['result'][] = $record),
-        'uid' => isset($uid) ? $uid : 1,
+        'title' => !empty($record['title']) ? $record['title'] : '',
+        'uid' => $uid,
         'status' => ($record['status'] == 1 || $record['status'] == TRUE) ? TRUE : FALSE,
       ];
 
       $field_names = array_keys($record);
      
-      $batch_result = \Drupal::service('snp.get_services')->checkFieldWidget($field_names, $record, $node_data, $entity_type);
+      if(empty($batch_result['result'])){
+        $batch_result = \Drupal::service('snp.get_services')->checkFieldWidget($field_names, $record, $node_data, $entity_type);
+      }      
 
       if (!empty($batch_result['result'])) {
         if (!isset($context['results']['failed'])) {
@@ -269,12 +295,6 @@ class NodeImportController extends ControllerBase {
       $i = 1;
       foreach ($failed_rows as $col_val) {
         foreach ($col_val as $keycol => $keyfieldval) {
-          if($keycol == 'reference' && !empty($col_val[$keycol])){
-
-            $referenceKey = $keyfieldval;
-            unset($col_val[$keycol]);
-
-          }
           if (is_array($keyfieldval) && !empty($keyfieldval)) {
             
             $j = 0;
@@ -288,8 +308,7 @@ class NodeImportController extends ControllerBase {
               $j++;
             }
           }
-          else {
-            
+          else {            
             $col_val[$keycol] = $keyfieldval;
           }
         }
@@ -312,8 +331,12 @@ class NodeImportController extends ControllerBase {
       // Make sure nothing else is sent, our file is done.
       $header_update = FALSE;
       foreach ($rows as $val) {
+        $row = [];
         if(!empty($val['type'])){
           unset($val['type']);
+        }
+        if(!empty($val['reference'])){
+          unset($val['reference']);
         }
         foreach ($val as $key => $keyval) {
           if (!$header_update) {
@@ -341,24 +364,28 @@ class NodeImportController extends ControllerBase {
         ['data' => t('Operations')],
       ];
 
+      $defaultMsg = t("<strong>Value not provided in CSV</strong>");
+
       foreach ($rows as $val) {
+        $row = [];
         foreach ($val as $key => $keyval) {
           if($key == 'title'){
             $row[] = ['data' => $srno];
-            $row[] = ['data' => $keyval];
+            $row[] = empty($keyval) ? $defaultMsg : ['data' => $keyval];
+            break;
           }          
         }        
 
         // generate add node link
-        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('node.add', array('node_type' => $val['type'], 'refkey' => $referenceKey, 'bundle' => $val['type'])))->toString();
+        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('node.add', array('node_type' => $val['type'], 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
         $addLink = $generateAddLink->getGeneratedLink();
         
         $row[] = array(
           'data' => t($addLink)
         );
 
-        $failedRows[] = ['data' => $row];
         $srno++;
+        $failedRows[] = ['data' => $row];
       }
 
       // output as table format
@@ -400,7 +427,6 @@ class NodeImportController extends ControllerBase {
     
     if(!empty($nid)){
       $query_record->condition('nr.sni_nid', $nid);
-      $query_record->addExpression('MAX(nr.serid)');
     }
     
     if(!empty($refKey)){

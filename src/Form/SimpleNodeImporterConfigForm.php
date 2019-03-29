@@ -102,6 +102,28 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
       '#required' => FALSE,
     ];
 
+    $form['fieldset_user_auto_create_settings'] = [
+      '#type' => 'fieldset',
+      '#title' => t('User Auto Creation Settings'),
+      '#weight' => 1,
+      '#collapsible' => TRUE,
+      '#collapsed' => FALSE,
+    ];
+
+    # the options to display in our form radio buttons
+    $options = array(
+      'admin' => t('Set Admin as default author.'),
+      'current' => t('Set current user as default author.'), 
+      'new' => t('Create new user with authenticated role.'),
+    );
+
+    $form['fieldset_user_auto_create_settings']['simple_node_importer_allow_user_autocreate'] = [
+      '#type' => 'radios',
+      '#options' => $options,
+      '#default_value' => $config->get('simple_node_importer_allow_user_autocreate'),
+      '#description' => t('User will be set accordingly, if the provided value for author in csv is not avaiable in the system.'),
+    ];
+
     $form['fieldset_taxonomy_term_type'] = [
       '#type' => 'fieldset',
       '#title' => t('Taxonomy Term settings'),
@@ -148,6 +170,7 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
    
     $config->set('entity_type_select', $form_state->getValue('entity_type_select'))
     ->set('content_type_select', $form_state->getValue('content_type_select'))
+    ->set('simple_node_importer_allow_user_autocreate', $form_state->getValue('simple_node_importer_allow_user_autocreate'))
     ->set('simple_node_importer_allow_add_term', $form_state->getValue('simple_node_importer_allow_add_term'))
     ->set('node_delete', $form_state->getValue('node_delete'))->save();
           
@@ -174,7 +197,7 @@ class SimpleNodeImporterConfigForm extends ConfigFormBase {
         entity_delete_multiple('node', $nids);
         drupal_set_message(t('%count nodes has been deleted.', ['%count' => count($nids)]));
       }
-      else{
+      else if($node_setting === 'deletelog' && empty($nids)){
         drupal_set_message("Oops there is nothing to delete");
       }
     }    

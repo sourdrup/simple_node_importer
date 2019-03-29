@@ -58,7 +58,6 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	    $form_state->cleanValues();
 
 	    $haystack = 'snp_';
-
 	    foreach ($form_state->getValues() as $key => $val) {
 	      if (strpos($key, $haystack) === FALSE){
 	        $mapvalues[$key] = $val;        
@@ -74,10 +73,6 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 
 	    $bundleType = $node->get('field_select_content_type')->getValue()[0]['value'];
 
-	    // Unset the session on batch start operation.
-	    /*if (!empty($this->sessionVariable->get('file_upload_session'))) {
-	      $this->sessionVariable->delete('file_upload_session');
-	    }*/
 	    $operations = [];
 	    $map_values = $this->sessionVariable->get('mapvalues');
 	    $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
