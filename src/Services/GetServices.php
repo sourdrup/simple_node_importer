@@ -411,7 +411,7 @@ class GetServices {
     }
   }
 
-  public function getUserByEmail(string $email, $op = NULL){
+  public function getUserByEmail($email, $op = NULL){
     //load user object
     // $op could be 'new', 'admin', 'current', 'content_validate'
     $userObj = user_load_by_mail($email);
@@ -440,8 +440,15 @@ class GetServices {
   public function createNewUser(string $email = NULL, string $uname = NULL){
 
     if(!empty($email)){
+      $today = date('dmy');
       $username = explode('@', $email);
-      $uname = $this->getUserByUsername($username[0]);
+      $userId = $this->getUserByUsername($username[0]);
+      if($userId && is_integer($userId)){
+        $uname = $username.$today;
+      }
+      else{
+        $uname = $username;
+      }
     }
     else if(!empty($uname)){
       $email = '';
@@ -467,15 +474,13 @@ class GetServices {
   public function getUserByUsername(string $uname, $op = NULL){
 
     // $op could be 'new', 'admin', 'current', 'content_validate'
-    $today = date('dmy');
-    
     $userId = \Drupal::entityQuery('user')
         ->condition('name', $uname)
         ->range(0, 1)
         ->execute();
 
     if(!empty($userId)){
-      return $userId;
+      return key($userId);
     }
     else if($op == 'new'){
       return $this->createNewUser(NULL, $uname);
@@ -492,7 +497,7 @@ class GetServices {
       return NULL;
     }
     else{
-      return $uname.$today;
+      return NULL;
     }
   }
 
@@ -590,9 +595,9 @@ class GetServices {
         }
       }
       else{
-       $flag = $this->getFieldValidation('email', $email);
+       $flag = $this->getFieldValidation('email', $userEmail);
         if($flag){
-          $user = $this->getUserByEmail($email, 'content_validate');
+          $user = $this->getUserByEmail($userEmail, 'content_validate');
           if($user && !is_integer($user)){
             $dataRow = $user->id();
           }
@@ -600,7 +605,7 @@ class GetServices {
             return $flag = FALSE;
           }
         }else{
-          $uid = $this->getUserByUsername($email, 'content_validate');
+          $uid = $this->getUserByUsername($userEmail, 'content_validate');
           if($uid){
             $dataRow = $uid;
           }
