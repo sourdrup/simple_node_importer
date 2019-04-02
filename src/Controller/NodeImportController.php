@@ -193,7 +193,7 @@ class NodeImportController extends ControllerBase {
       }
 
       if ($resolution_log) {
-        drupal_set_message(t('Failed node added to resolution center.'));
+        drupal_set_message(t('Failed records added to resolution center.'));
       }
     }
   }
@@ -232,8 +232,14 @@ class NodeImportController extends ControllerBase {
       $row[] = ['data' => $srno];
 
       // get the bundle label
-      $node = \Drupal::entityManager()->getStorage('node')->load($data->nid);
-      $bundle_label = \Drupal::entityTypeManager()->getStorage('node_type')->load($contentType)->label();
+      if($contentType == 'user'){
+        $bundle_label = 'User';
+      }
+      else{
+        $node = \Drupal::entityManager()->getStorage('node')->load($data->nid);
+        $bundle_label = \Drupal::entityTypeManager()->getStorage('node_type')->load($contentType)->label();
+      }
+      
 
       $row[] = ['data' => $bundle_label];
 
@@ -289,7 +295,7 @@ class NodeImportController extends ControllerBase {
 
   public function resolutionCenterOperations(\Drupal\node\NodeInterface $node, $op) {
 
-    $failed_rows = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC($node->id(), NULL);   
+    $failed_rows = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC($node->id(), NULL); 
 
     if ($failed_rows) {
       $i = 1;
@@ -318,8 +324,18 @@ class NodeImportController extends ControllerBase {
       }
     }
 
+    $entityType = $node->field_select_entity_type[0]->value;
+
+    //print_r($rows); exit;  
+
     if ($op == 'download-csv'){
-      $filename = 'Import-failed-nodes.csv';
+
+      if($entityType == 'user'){
+        $filename = 'Import-failed-users.csv';
+      }
+      else{
+        $filename = 'Import-failed-nodes.csv';
+      }      
       header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
       header('Content-Description: File Transfer');
       header("Content-type: text/csv");
@@ -335,9 +351,11 @@ class NodeImportController extends ControllerBase {
         if(!empty($val['type'])){
           unset($val['type']);
         }
+
         if(!empty($val['reference'])){
           unset($val['reference']);
         }
+
         foreach ($val as $key => $keyval) {
           if (!$header_update) {
             $headcol[] = ucwords(str_replace("field ", "", str_replace("_", " ", $key)));
@@ -360,7 +378,7 @@ class NodeImportController extends ControllerBase {
       $srno = 1;
       $tableheader = [
         ['data' => t('Sr no')],
-        ['data' => t('Title')],
+        ['data' => ($entityType == 'user') ? t('Username') : t('Title')],
         ['data' => t('Operations')],
       ];
 
@@ -369,7 +387,7 @@ class NodeImportController extends ControllerBase {
       foreach ($rows as $val) {
         $row = [];
         foreach ($val as $key => $keyval) {
-          if($key == 'title'){
+          if($key == 'title' || $key == 'name'){
             $row[] = ['data' => $srno];
             $row[] = empty($keyval) ? $defaultMsg : ['data' => $keyval];
             break;
@@ -377,7 +395,13 @@ class NodeImportController extends ControllerBase {
         }        
 
         // generate add node link
-        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('node.add', array('node_type' => $val['type'], 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
+      if($entityType == 'user'){
+        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('user.admin_create', array('entity_type' => $val['type'], 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
+      }
+      else{
+        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('node.add', array('entity_type' => $val['type'], 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
+      }
+        
         $addLink = $generateAddLink->getGeneratedLink();
         
         $row[] = array(

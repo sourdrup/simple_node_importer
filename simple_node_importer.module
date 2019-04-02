@@ -16,62 +16,56 @@ use Drupal\field\Entity\FieldStorageConfig;
  */
 
 /**
- * Include .inc files as necessary.
- */
-/*require_once drupal_get_path('module', 'simple_node_importer') . '/includes/simple_node_importer.inc';
-require_once drupal_get_path('module', 'simple_node_importer') . '/includes/simple_node_importer_config.inc';
-require_once drupal_get_path('module', 'simple_node_importer') . '/includes/resolution_center.inc';*/
-
-/**
  * Implements hook_help().
  *
  * Displays help and module information.
  */
-// function simple_node_importer_help($path, $arg) {
-//   global $base_url;
-//   $type = 'module';
-//   $module = 'simple_node_importer';
-//   $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/thumbnail.png';
-//   $output = '';
-//   switch ($path) {
-//     case 'admin/help#simple_node_importer':
-      // code...
-     /* $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('Simple Node Importer is a simple module which imports nodes using CSV files. It provides the functionality for mapping UI to map CSV columns to it\'s corresponding entity field. For more information, see the online handbook entry for <a href="@simplenodeimporter">Simple Node Importer module</a>.', array('@simplenodeimporter' => \Drupal\Core\Url::fromUri('https://www.drupal.org/sandbox/sourdrup/2828039'))) . '</p>';
-      $output .= '<h3>' . t('How to Use') . '</h3>';
-      $output .= '<dl>';
-      $output .= '<dt><strong>' . t('Enabling module') . '</strong></dt>';
-      $output .= '<dd>' . t('This module get install in the same manner as other module does. You need to download it and save it into "sites/all/modules" directory and enable it from the "admin/modules" page.') . '</dd>';
-      $output .= '<dt><strong>' . t('Start working with Simple Node Importer') . '</strong></dt>';*/
-      // @FIXME
- /* url() expects a route name or an external URI.
-  $output .= '<dd>' . t('After module gets enabled, admin has to visit either <a href="@admin-sni-settings"><em>Simple Node Importer</em></a> settings page or <a href="@add-simple-node-importer"><em>Add Simple Node Importer</em></a> page to select the content types which are available for content importing from the list of Content types available in the Drupal site. On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Content type settings"</em></strong>, admin can select content types, admin want to allow for import.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'), '@add-simple-node-importer' => url('node/add/simple-node'))) . '</dd>';
+function simple_node_importer_help($path, $arg) {
 
-      @FIXME
-  url() expects a route name or an external URI.
-  $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Taxonomy term settings"</em></strong>, admin can uncheck the checkbox to disallow adding new taxonomy terms to the vocabulary, default it is checked to allow.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
+  $base_url = \Drupal::request()->getSchemeAndHttpHost();
+  $type = 'module';
+  $module = 'simple_node_importer';
+  $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/thumbnail.png';
+  $output = '';
+  switch ($path) {
+    case 'admin/help#simple_node_importer':
+    // code...
+    $output .= '<h3>' . t('About') . '</h3>';
+    $output .= '<p>' . t('Simple Entity Importer is a simple module which imports entities(node/users/taxonomy) using CSV files. It provides a mapping UI to map CSV columns to it\'s corresponding entity field. For more information, see the online handbook entry for <a href="@simplenodeimporter">Simple Node Importer module</a>.', array('@simplenodeimporter' => \Drupal\Core\Url::fromUri('https://www.drupal.org/sandbox/sourdrup/2828039'))) . '</p>';
+    $output .= '<h3>' . t('How to Use') . '</h3>';
+    $output .= '<dl>';
+    $output .= '<dt><strong>' . t('Enabling module') . '</strong></dt>';
+    $output .= '<dd>' . t('This module get install in the same manner as other module does. You need to download it and save it into "sites/all/modules" directory and enable it from the "admin/modules" page.') . '</dd>';
+    $output .= '<dt><strong>' . t('Start working with Simple Node Importer') . '</strong></dt>';
+//       // @FIXME
+//   url() expects a route name or an external URI.
+//   $output .= '<dd>' . t('After module gets enabled, admin has to visit either <a href="@admin-sni-settings"><em>Simple Node Importer</em></a> settings page or <a href="@add-simple-node-importer"><em>Add Simple Node Importer</em></a> page to select the content types which are available for content importing from the list of Content types available in the Drupal site. On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Content type settings"</em></strong>, admin can select content types, admin want to allow for import.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'), '@add-simple-node-importer' => url('node/add/simple-node'))) . '</dd>';
 
-      @FIXME
-    url() expects a route name or an external URI.
-    $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Node remove settings"</em></strong>, admin can admin can delete all the nodes of <em>"Simple Node Importer"</em> content type.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';*/
+//       @FIXME
+//   url() expects a route name or an external URI.
+//   $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Taxonomy term settings"</em></strong>, admin can uncheck the checkbox to disallow adding new taxonomy terms to the vocabulary, default it is checked to allow.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
 
-//     $output .= '<dt><strong>' . t('Importing with Simple Node Importer') . '</strong></dt>';
-//     $output .= '<dd><ul><li>' . t('Visit <a href="@add-simple-node-importer">Add Simple Node Importer</a> allows user to select content type, select content type.', array('@add-simple-node-importer' => \Drupal\Core\Url::fromRoute('node.add'))) . '</li><li>' . t('As user selects content type, an information box will appear having all the details of mandatory fields and multi valued fields, which helps user to prepare CSV accordingly.') . '</li><li>' . t('On select of content type, user will be able to download sample CSV file having all the field name as column headers, it is not mandatory at all to use sample downloaded CSV, user can use custom CSV too.') . '</li><li>' . t('If user uploads custom CSV, then user need to select or map the correct column to correct field name on very next step otherwise mapping appears pre-selected.') . '</li><li>' . t('Multiple values for multi valued fileds must be in separate columns and all columns should be selected on mapping page to the respective field.') . '</li><li>' . t('Once mapping is done, user can start import, clicking on Import button.') . '</li><li>' . t('Importing started and once completed you will redirect to Status page.') . '</li></ul></dd>';
-//       $output .= '<dt>' . t('Resolution Center') . '</dt>';
-//       $output .= '<dd>' . t('If any records fails to import, you will get a link <a href"@resolution-center"><em>Resolution Center</em></a> on import status page, where user can view, download and delete the failed records.', array('@resolution-center' => 'nodeimporter/node/%node/download-csv')) . '</dd>';
-//       $output .= '<dt>' . t('Demo') . '</dt>';
-//       $output .= '<dd>' . t('Still need demo?, you can visit: <br/><br/> <a href="@demo" target="_blank"><img src="@thumbnail" alt="demo" width="15%" ></a>', array('@demo' => 'https://youtu.be/331_aDapzrM', '@thumbnail' => $filepath)) . '</dd>';
-//       $output .= '<dt>' . t('User permissions') . '</dt>';
-//       $output .= '<dd>' . t('Visit <a href="@permissions">permissions page</a>.', array('@permissions' => \Drupal\Core\Url::fromRoute('user.admin_permissions'))) . '</dd>';
-//       $output .= '</dl>';
-//       break;
+//       @FIXME
+//     url() expects a route name or an external URI.
+//     $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Node remove settings"</em></strong>, admin can admin can delete all the nodes of <em>"Simple Node Importer"</em> content type.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
 
-//     default:
-//       // code...
-//       break;
-//   }
-//   return $output;
-// }
+// //     $output .= '<dt><strong>' . t('Importing with Simple Node Importer') . '</strong></dt>';
+// //     $output .= '<dd><ul><li>' . t('Visit <a href="@add-simple-node-importer">Add Simple Node Importer</a> allows user to select content type, select content type.', array('@add-simple-node-importer' => \Drupal\Core\Url::fromRoute('node.add'))) . '</li><li>' . t('As user selects content type, an information box will appear having all the details of mandatory fields and multi valued fields, which helps user to prepare CSV accordingly.') . '</li><li>' . t('On select of content type, user will be able to download sample CSV file having all the field name as column headers, it is not mandatory at all to use sample downloaded CSV, user can use custom CSV too.') . '</li><li>' . t('If user uploads custom CSV, then user need to select or map the correct column to correct field name on very next step otherwise mapping appears pre-selected.') . '</li><li>' . t('Multiple values for multi valued fileds must be in separate columns and all columns should be selected on mapping page to the respective field.') . '</li><li>' . t('Once mapping is done, user can start import, clicking on Import button.') . '</li><li>' . t('Importing started and once completed you will redirect to Status page.') . '</li></ul></dd>';
+// //       $output .= '<dt>' . t('Resolution Center') . '</dt>';
+// //       $output .= '<dd>' . t('If any records fails to import, you will get a link <a href"@resolution-center"><em>Resolution Center</em></a> on import status page, where user can view, download and delete the failed records.', array('@resolution-center' => 'nodeimporter/node/%node/download-csv')) . '</dd>';
+// //       $output .= '<dt>' . t('Demo') . '</dt>';
+// //       $output .= '<dd>' . t('Still need demo?, you can visit: <br/><br/> <a href="@demo" target="_blank"><img src="@thumbnail" alt="demo" width="15%" ></a>', array('@demo' => 'https://youtu.be/331_aDapzrM', '@thumbnail' => $filepath)) . '</dd>';
+// //       $output .= '<dt>' . t('User permissions') . '</dt>';
+// //       $output .= '<dd>' . t('Visit <a href="@permissions">permissions page</a>.', array('@permissions' => \Drupal\Core\Url::fromRoute('user.admin_permissions'))) . '</dd>';
+// //       $output .= '</dl>';
+// //       break;
+
+// //     default:
+// //       // code...
+// //       break;
+  }
+  return $output;
+}
 
 
 /**
@@ -324,17 +318,22 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
 
   $refKey = \Drupal::request()->get('refkey');
   $bundleName = \Drupal::request()->get('bundle');
-  $bundleFormId = 'node_'.$bundleName.'_form';
-  $excludeArr = ['type', 'reference'];
+  
+  if($bundleName != 'user'){
+    $bundleFormId = 'node_'.$bundleName.'_form';
+  }
+  else{
+    $bundleFormId = 'user_register_form';
+  }
+  $excludeArr = ['type', 'reference', 'name', 'mail', 'roles'];
   if($form_id == $bundleFormId && !empty($refKey)){
       $failedRow = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC(NULL, $refKey);
-
+    
       foreach($failedRow as $rowVal){
+        $entity_type = \Drupal::request()->get('entity_type');
         foreach($rowVal as $fieldKey => $fieldVal){
           if(!in_array($fieldKey, $excludeArr)){
             $fieldWidget = $form[$fieldKey]['widget'];
-            $entity_type = 'node';
-
             $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
 
             if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
@@ -347,6 +346,20 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
             else{
               $form[$fieldKey] = $fieldSetVal;
             }         
+          }
+          else{
+            $fieldWidget = $form['account'][$fieldKey];
+            $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
+            if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
+              foreach($fieldSetVal['bugField'] as $err){
+                $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
+                \Drupal::messenger()->addStatus($msg);
+              }            
+              $form['account'][$fieldKey] = $fieldSetVal['fieldWidget'];
+            }
+            else{
+              $form['account'][$fieldKey] = $fieldSetVal;
+            }    
           }
         }
       }
@@ -393,8 +406,7 @@ function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
   }
 }
 
-function simple_node_importer_validate(&$form, FormStateInterface &$form_state)
-{
+function simple_node_importer_validate(&$form, FormStateInterface &$form_state){
   $entity_selected = $form_state->getValue('field_select_entity_type')[0]['value'];
   // $tempstore = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
   // $tempstore->set('entity_type_selected', $entity_selected);

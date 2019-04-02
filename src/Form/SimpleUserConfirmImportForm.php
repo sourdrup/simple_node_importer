@@ -18,160 +18,150 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  */
 class SimpleUserConfirmImportForm extends ConfirmFormBase {
 
-	protected $services;
-   	protected $sessionVariable;
-   	protected $sessionManager;
-   	protected $currentUser;
-   	protected $entityTypeManager;
+protected $services;
+protected $sessionVariable;
+protected $sessionManager;
+protected $currentUser;
+protected $entityTypeManager;
 
-	/**
-	* Constructs a Drupal\Component\Plugin\PluginBase object.
-	*
-	* @param array $configuration
-	*   A configuration array containing information about the plugin instance.
-	*/
-	public function __construct($GetServices, \Drupal\Core\TempStore\PrivateTempStoreFactory  $SessionVariable, \Drupal\Core\Session\SessionManagerInterface $session_manager, \Drupal\Core\Session\AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager) {
-		$this->services = $GetServices;
-		$this->sessionVariable = $SessionVariable->get('simple_node_importer');
-		$this->sessionManager = $session_manager;
-		$this->currentUser = $current_user;
-		$this->entityTypeManager = $entity_type_manager;
-	}
+/**
+* Constructs a Drupal\Component\Plugin\PluginBase object.
+*
+* @param array $configuration
+*   A configuration array containing information about the plugin instance.
+*/
+public function __construct($GetServices, \Drupal\Core\TempStore\PrivateTempStoreFactory  $SessionVariable, \Drupal\Core\Session\SessionManagerInterface $session_manager, \Drupal\Core\Session\AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager) {
+	$this->services = $GetServices;
+	$this->sessionVariable = $SessionVariable->get('simple_node_importer');
+	$this->sessionManager = $session_manager;
+	$this->currentUser = $current_user;
+	$this->entityTypeManager = $entity_type_manager;
+}
 
-	/**
-	* {@inheritdoc}
-	*/
-	public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL, \Drupal\node\NodeInterface $node = NULL) {
-        $this->node = $node;
-        $form['snp_nid'] = [
-			'#type' => 'hidden',
-			'#value' => $node->id()
-		];
-		$parameters = array('option' => $option,'node' =>$node->id());
-		return parent::buildForm($form, $form_state,$parameters);
-	}
+/**
+* {@inheritdoc}
+*/
+public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL, \Drupal\node\NodeInterface $node = NULL) {
+	$this->node = $node;
+	$form['snp_nid'] = [
+		'#type' => 'hidden',
+		'#value' => $node->id()
+	];
+	$parameters = array('option' => $option,'node' =>$node->id());
+	return parent::buildForm($form, $form_state,$parameters);
+}
 
-	/**
-	* {@inheritdoc}
-	*/
-	public function submitForm(array &$form, FormStateInterface $form_state) {
-		//print_r($form_state->getValues()); exit;
-	    // Remove unnecessary values.
-	    $form_state->cleanValues();
-	    // $haystack = 'snp_';
-			// print_r($form_state->getValues());die;
-	    // foreach ($form_state->getValues() as $key => $val) {
-	    //   if (strpos($key, $haystack) === FALSE){
-	    //     $mapvalues[$key] = $val;        
-	    //   }
-	    // }
+/**
+* {@inheritdoc}
+*/
+public function submitForm(array &$form, FormStateInterface $form_state) {
+	// Remove unnecessary values.
+	$form_state->cleanValues();
 
-	    $node_storage = $this->entityTypeManager->getStorage('node');
-	    $file_storage = $this->entityTypeManager->getStorage('file');
+	$node_storage = $this->entityTypeManager->getStorage('node');
+	$file_storage = $this->entityTypeManager->getStorage('file');
 
-	    $snp_nid = $form_state->getValue('snp_nid');
+	$snp_nid = $form_state->getValue('snp_nid');
 
-	    $node = $node_storage->load($snp_nid);
+	$node = $node_storage->load($snp_nid);
 
-	    // Unset the session on batch start operation.
-	    /*if (!empty($this->sessionVariable->get('file_upload_session'))) {
-	      $this->sessionVariable->delete('file_upload_session');
-	    }*/
-	    $operations = [];
-			$map_values = $this->sessionVariable->get('mapvalues');
-	    $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
-	    $file = $file_storage->load($fid);
-	    $csv_uri = $file->getFileUri();
-			$handle = fopen($csv_uri, 'r');
-	    $columns = [];
-	    $columns = array_values($this->services->simple_node_importer_getallcolumnheaders($csv_uri));
-	    $record = [];
-			$map_fields = array_keys($map_values);
-			$i = 1;
-			$records = array();
-	    while ($row = fgetcsv($handle)) {
-	      if ($i == 1) {
-					$i++;
-	        continue;
+	$operations = [];
+	$map_values = $this->sessionVariable->get('mapvalues');
+	$fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
+	$file = $file_storage->load($fid);
+	$csv_uri = $file->getFileUri();
+	$handle = fopen($csv_uri, 'r');
+	$columns = [];
+	$columns = array_values($this->services->simple_node_importer_getallcolumnheaders($csv_uri));
+	$record = [];
+	$map_fields = array_keys($map_values);
+	$i = 1;
+	$records = array();
+
+	while ($row = fgetcsv($handle)) {
+	  if ($i == 1) {
+		$i++;
+	    continue;
+	  }
+	  foreach ($row as $k => $field) {
+	    $column1 = str_replace(' ', '_', strtolower($columns[$k]));
+	    foreach ($map_fields as $field_name) {
+	      if ($map_values[$field_name] == $column1) {
+	        $record[$field_name] = $field;
 	      }
-	      foreach ($row as $i => $field) {
-	        $column1 = str_replace(' ', '_', strtolower($columns[$i]));
-	        foreach ($map_fields as $field_name) {
-	          if ($map_values[$field_name] == $column1) {
-	            $record[$field_name] = $field;
-	          }
-	          else {
-	            if (is_array($map_values[$field_name])) {
-	              $multiple_fields = array_keys($map_values[$field_name]);
-	              foreach ($multiple_fields as $i => $m_fields) {
-	                if ($m_fields == $column1) {
-	                  $record[$field_name][$i] = $field;
-	                }
-	              }
+	      else {
+	        if (is_array($map_values[$field_name])) {
+	          $multiple_fields = array_keys($map_values[$field_name]);
+	          foreach ($multiple_fields as $k => $m_fields) {
+	            if ($m_fields == $column1) {
+	              $record[$field_name][$k] = $field;
 	            }
 	          }
 	        }
-				}
-				$record['nid'] = $node->id();
-	      $record['type'] = 'user';
-				$records[] = $record;
-			}
-	    // Preapring batch parmeters to be execute.
-	    $batch = [
-	      'title' => t('Importing User'),
-	      'operations' => [
-	          [
-	            '\Drupal\simple_node_importer\Controller\UserImportController::UserImport',
-	            [$records],
-	          ],
-	       ],
-	      'finished' => '\Drupal\simple_node_importer\Controller\UserImportController::UserImport',
-	      'init_message' => t('Initialializing User importing.'),
-	      'progress_message' => t('Processed @current out of @total.'),
-	      'error_message' => t('User creation has encountered an error.'),
-	    ];
-	    // Set the batch operation.
-	    batch_set($batch);
-			fclose($handle);
-		
+	      }
+	    }
+	  }
+	  $record['nid'] = $node->id();
+	  $record['type'] = 'user';
+	  $records[] = $record;
 	}
+	
 
-	/**
-	* {@inheritdoc}
-	*/
-	public function getFormId() : string {
-		return "simple_user_confirm_importing_form";
-	}
+	// Preapring batch parmeters to be execute.
+	$batch = [
+	  'title' => t('Importing User'),
+	  'operations' => [
+	      [
+	        '\Drupal\simple_node_importer\Controller\UserImportController::UserImport',
+	        [$records],
+	      ],
+	   ],
+	  'finished' => '\Drupal\simple_node_importer\Controller\UserImportController::userImportBatchFinished',
+	  'init_message' => t('Initialializing User importing.'),
+	  'progress_message' => t('Processed @current out of @total.'),
+	  'error_message' => t('User creation has encountered an error.'),
+	];
+	// Set the batch operation.
+	batch_set($batch);
+	fclose($handle);
+}
 
-	/**
-	* {@inheritdoc}
-	*/
-	public function getCancelUrl() {
-		$nid = $this->node->id();
-		$parameters = $this->sessionVariable->get('parameters');
-		return new Url('simple_node_importer.user_mapping_form', $parameters);
-	}
+/**
+* {@inheritdoc}
+*/
+public function getFormId() : string {
+return "simple_user_confirm_importing_form";
+}
 
-	/**
-	* {@inheritdoc}
-	*/
-	public function getQuestion() {
+/**
+* {@inheritdoc}
+*/
+public function getCancelUrl() {
+$nid = $this->node->id();
+$parameters = $this->sessionVariable->get('parameters');
+return new Url('simple_node_importer.user_mapping_form', $parameters);
+}
 
-		$critical_info = "<p class='confirmation-info'></p><p>Do you want to continue?</p>";
+/**
+* {@inheritdoc}
+*/
+public function getQuestion() {
 
-		return t($critical_info);
-	}
+$critical_info = "<p class='confirmation-info'></p><p>Do you want to continue?</p>";
 
-	/**
-	* {@inheritdoc}
-	*/
-	public static function create(ContainerInterface $container) {
-		return new static(
-			 $container->get('snp.get_services'),
-			 $container->get('user.private_tempstore'),
-			 $container->get('session_manager'),
-			 $container->get('current_user'),
-			 $container->get('entity_type.manager')
-		);
-	}
+return t($critical_info);
+}
+
+/**
+* {@inheritdoc}
+*/
+public static function create(ContainerInterface $container) {
+return new static(
+	 $container->get('snp.get_services'),
+	 $container->get('user.private_tempstore'),
+	 $container->get('session_manager'),
+	 $container->get('current_user'),
+	 $container->get('entity_type.manager')
+);
+}
 }

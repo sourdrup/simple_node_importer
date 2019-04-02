@@ -246,9 +246,12 @@ class GetServices {
   }
 
   public function snp_getFields($fieldsManager, $type, $entity_type = NULL){
-   
-    $defaultFieldArr = ['title', 'body', 'name', 'mail', 'status', 'roles', 'uid'];
-
+   if($entity_type == 'node'){
+    $defaultFieldArr = ['title', 'body', 'status', 'uid'];
+   }
+    else{
+    $defaultFieldArr = [ 'name', 'mail', 'status', 'roles', 'user_picture'];
+    }
     $haystack = 'field_';
       foreach ($fieldsManager as $key  => $field ){
         if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
@@ -287,7 +290,7 @@ class GetServices {
   */
   public function checkFieldWidget($field_names, $data, $node, $entity_type) {
 
-    $excludeFieldArr = ['name', 'mail','status','roles','nid','type', 'uid', 'title'];
+    $excludeFieldArr = ['name', 'mail','status', 'roles', 'nid','type', 'uid', 'title'];
 
     $flag = TRUE;
     foreach ($field_names as $field_machine_name) {
@@ -395,7 +398,7 @@ class GetServices {
 
         }
         else{
-          $node['result'] = $data;
+          $flag = FALSE;
           break;
         }        
       }// end of 1st if   
@@ -734,7 +737,7 @@ class GetServices {
 
   public static function generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundle){
 
-    $excludeFieldArr = ['type', 'nid', 'uid', 'title', 'reference', 'status'];
+    $excludeFieldArr = ['type', 'nid', 'uid', 'title', 'reference', 'status', 'name', 'mail', 'roles'];
     $flag = TRUE;
     $key = 0;
     if(!in_array($fieldKey, $excludeFieldArr)){
@@ -974,8 +977,14 @@ class GetServices {
       }
     }
     else{
+
       if($fieldKey == 'title'){
         $fieldWidget[0]['value']['#default_value'] = $fieldVal;
+      }
+
+      // for user bundle type
+      if(in_array($fieldKey, ['name', 'mail', 'roles'])){
+        $fieldWidget['#default_value'] = $fieldVal;
       }
       
       if($fieldKey == 'uid' && !empty($fieldVal)){

@@ -52,8 +52,9 @@ class SimpleUserImporterMappingForm extends FormBase {
       $message = 'Node object is not valid.';
       \Drupal::logger($type)->error($message, []);
     }
-    elseif (!$_SESSION['file_upload_session']) {
-      drupal_goto('node/add/simple-node');
+    elseif ($this->tempStore->get('file_upload_session') == FALSE) {
+      $response = new RedirectResponse('/node/add/simple-node');
+      $response->send();
     }
     else {
       // Options to be listed in File Column List.
