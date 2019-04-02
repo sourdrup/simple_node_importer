@@ -809,6 +809,7 @@ class GetServices {
             }           
           }
           else if($target_type == "user"){
+            $user = user_load_by_name($fieldVal);
             if(is_array($fieldVal) && !empty($fieldVal)){
               foreach ($fieldVal as $userEmail) {
                 if(filter_var($userEmail, FILTER_VALIDATE_EMAIL)){
@@ -832,12 +833,15 @@ class GetServices {
                   $userObject = $user->id();
                 }
               }
+              else if(!empty($user)){
+                $userObject = $user->id();
+              }
               else{
                 $fields[] = $fieldKey;
               }
             }
 
-            if(empty($userObject)){
+            if(empty($userObject) && !empty($fieldVal)){
               $fields[] = $fieldKey;
             }
           }
@@ -978,13 +982,21 @@ class GetServices {
     }
     else{
 
-      if($fieldKey == 'title'){
+      if($fieldKey == 'title' && !empty($fieldVal)){
         $fieldWidget[0]['value']['#default_value'] = $fieldVal;
+      }
+      else if($fieldKey == 'title' && empty($fieldVal)){
+        $fields[] = $fieldKey;
       }
 
       // for user bundle type
       if(in_array($fieldKey, ['name', 'mail', 'roles'])){
-        $fieldWidget['#default_value'] = $fieldVal;
+        if($fieldKey == 'name' && empty($fieldVal)){
+          $fields[] = $fieldKey;
+        }
+        else{
+          $fieldWidget['#default_value'] = $fieldVal;
+        }
       }
       
       if($fieldKey == 'uid' && !empty($fieldVal)){

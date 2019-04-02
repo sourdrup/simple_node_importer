@@ -224,13 +224,14 @@ class NodeImportController extends ControllerBase {
     $query_record->groupBy('nr.sni_nid');
 
     $result = $query_record->execute()->fetchAll();
+    $failedRecords = count($result);
 
     foreach ($result as $data) {
       $serializData = unserialize($data->data);
       $contentType = $serializData['type'];
       $row = [];
       $row[] = ['data' => $srno];
-
+      
       // get the bundle label
       if($contentType == 'user'){
         $bundle_label = 'User';
@@ -240,14 +241,14 @@ class NodeImportController extends ControllerBase {
         $bundle_label = \Drupal::entityTypeManager()->getStorage('node_type')->load($contentType)->label();
       }
       
-
+      
       $row[] = ['data' => $bundle_label];
-
+      
       // Convert timestamp to date & time.
       $formatted_date = date('d-M-Y', $data->created);
       $row[] = ['data' => $formatted_date];
       $status = unserialize($data->status);
-      $row[] = ['data' => $status['success']];
+      $row[] = ['data' => ($status['success']) ? $status['success'] : 0];
       $row[] = ['data' => $status['fail']];
       $account = \Drupal\user\Entity\User::load($data->uid); // pass your uid
       $author = $account->getUsername();
@@ -300,6 +301,7 @@ class NodeImportController extends ControllerBase {
     if ($failed_rows) {
       $i = 1;
       foreach ($failed_rows as $col_val) {
+        unset($col_val['sni_nid']);
         foreach ($col_val as $keycol => $keyfieldval) {
           if (is_array($keyfieldval) && !empty($keyfieldval)) {
             
@@ -325,8 +327,6 @@ class NodeImportController extends ControllerBase {
     }
 
     $entityType = $node->field_select_entity_type[0]->value;
-
-    //print_r($rows); exit;  
 
     if ($op == 'download-csv'){
 
@@ -447,7 +447,7 @@ class NodeImportController extends ControllerBase {
     $connection = \Drupal\Core\Database\Database::getConnection();
     $connection->query("SET SQL_MODE=''");
     $query_record = $connection->select('node_resolution', 'nr');
-    $query_record->fields('nr', ['data', 'reference']);
+    $query_record->fields('nr', ['data', 'reference', 'sni_nid']);
     
     if(!empty($nid)){
       $query_record->condition('nr.sni_nid', $nid);
@@ -462,6 +462,7 @@ class NodeImportController extends ControllerBase {
       // code...
       $data[$k] = unserialize($value->data);
       $reference[$k] = $value->reference;
+      $sni_nid[$k] = $value->sni_nid;
       unset($data[$k]['sni_id']);
     }
 
@@ -473,6 +474,7 @@ class NodeImportController extends ControllerBase {
       foreach ($rows as $key => $record) {
         $records[$rowKey][$key] = $record;
         $records[$rowKey]['reference'] = $reference[$rowKey];
+        $records[$rowKey]['sni_nid'] = $sni_nid[$rowKey];
       }
     }
 

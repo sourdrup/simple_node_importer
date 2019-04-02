@@ -94,6 +94,9 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 	          $multiple_fields = array_keys($map_values[$field_name]);
 	          foreach ($multiple_fields as $k => $m_fields) {
 	            if ($m_fields == $column1) {
+								if($m_fields == 'roles'){
+									$field = str_replace(' ', '_', strtolower($field));
+								}
 	              $record[$field_name][$k] = $field;
 	            }
 	          }

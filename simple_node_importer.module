@@ -328,8 +328,9 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
   $excludeArr = ['type', 'reference', 'name', 'mail', 'roles'];
   if($form_id == $bundleFormId && !empty($refKey)){
       $failedRow = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC(NULL, $refKey);
-    
       foreach($failedRow as $rowVal){
+        $sni_nid = $rowVal['sni_nid'];
+        unset($rowVal['sni_nid']);
         $entity_type = \Drupal::request()->get('entity_type');
         foreach($rowVal as $fieldKey => $fieldVal){
           if(!in_array($fieldKey, $excludeArr)){
@@ -339,7 +340,7 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
             if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
               foreach($fieldSetVal['bugField'] as $err){
                 $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
-                \Drupal::messenger()->addStatus($msg);
+                \Drupal::messenger()->addError($msg);
               }            
               $form[$fieldKey] = $fieldSetVal['fieldWidget'];
             }
@@ -348,12 +349,26 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
             }         
           }
           else{
+            if($fieldKey == 'name' && !empty($fieldVal)){
+              $user = user_load_by_name($fieldVal);
+              if($user){
+                $msg = t("User already exists with username: @bugField", array('@bugField' => $fieldKey));
+                \Drupal::messenger()->addError($msg);
+              }
+            }
+            else if($fieldKey == 'mail' && !empty($fieldVal)){
+              $user = user_load_by_mail($fieldVal);
+              if($user){
+                $msg = t("User already exists with email: @bugField", array('@bugField' => $fieldKey));
+                \Drupal::messenger()->addError($msg);
+              }
+            }
             $fieldWidget = $form['account'][$fieldKey];
             $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
             if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
               foreach($fieldSetVal['bugField'] as $err){
                 $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
-                \Drupal::messenger()->addStatus($msg);
+                \Drupal::messenger()->addError($msg);
               }            
               $form['account'][$fieldKey] = $fieldSetVal['fieldWidget'];
             }
@@ -361,12 +376,16 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
               $form['account'][$fieldKey] = $fieldSetVal;
             }    
           }
+
         }
       }
-
       $form['refkey'] = [
         '#type' => 'hidden',
         '#value' => $refKey
+      ];
+      $form['sni_nid'] = [
+        '#type' => 'hidden',
+        '#value' => $sni_nid
       ];
 
       $form['actions']['submit']['#submit'][] = 'update_rc_table_form_submit';
@@ -376,16 +395,46 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
 
 function update_rc_table_form_submit($form, FormStateInterface &$form_state){
   $refKey = $form_state->getValue('refkey');
+  $sni_nid = $form_state->getValue('sni_nid');
   
   if($refKey){
     $connection = \Drupal\Core\Database\Database::getConnection();
     $num_deleted = $connection->delete('node_resolution')
     ->condition('reference', $refKey)
     ->execute();
+
+  
     if($num_deleted){
+      if($sni_nid){
+        $connection = \Drupal\Core\Database\Database::getConnection();
+        $connection->query("SET SQL_MODE=''");
+        $query_record = $connection->select('node_resolution', 'nr');
+        $query_record->fields('nr', ['status']);
+        $query_record->condition('nr.sni_nid', $sni_nid);
+        $query_record->range(0,1);
+        $result = $query_record->execute()->fetchAll();
+        foreach($result as $row){
+          $status = unserialize($row->status);
+        }
+
+        $import_status = array(
+          'success' => $status['success'] + 1,
+          'fail' => $status['fail'] - 1,
+        );
+
+        // update status
+        $update_query = $connection->update('node_resolution')
+        ->fields([
+          'status' => serialize($import_status)
+        ])
+        ->condition('sni_nid', $sni_nid)
+        ->execute();
+      }
+
       $msg = t("Resolution Center Updated");
-      \Drupal::messenger()->addStatus($msg);
+      \Drupal::messenger()->deleteByType('error');
       $form_state->setRedirect('simple_node_importer.node_resolution_center');
+      \Drupal::messenger()->addStatus($msg);
     }
   }
 }
