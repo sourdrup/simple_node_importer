@@ -66,23 +66,6 @@ class SimpleUserImporterMappingForm extends FormBase {
       $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_option, $type);
       $parameters = array('option' => $option,'node' =>$node->id());
       $this->tempStore->set('parameters', $parameters);
-      // /$allowed_date_format = NULL;
-      // $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load($entity_type . '.' . $selected_content_type . '.' . $form_mode);
-      // $widget_types = $form_display->getComponents();
-      //   foreach ($widget_types as $widget_type) {
-      //     if ($widget_type['type'] == "date_text") {
-      //       $allowed_date_format = $field['widget']['settings']['input_format'];
-      //       print_r($allowed_date_format);die;
-      //     }
-      //   }
-      
-      //dsm($get_field_list);
-      /*foreach ($get_field_list as $field) {
-        if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
-          $allowed_date_format = $field['widget']['settings']['input_format'];
-        }
-      }*/
-      // $outputtext = theme('mapping_help_text_info', array('allowed_date_format' => $allowed_date_format, 'filepath' => $filepath));
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',
@@ -140,7 +123,7 @@ class SimpleUserImporterMappingForm extends FormBase {
         '#value' => t('Import'),
         '#weight' => 49,
       ];
-      $this->tempStore->set('parameters', $parameters);
+     // $this->tempStore->set('parameters', $parameters);
       $form['cancel'] = [
         '#type' => 'submit',
         '#value' => t('cancel'),
@@ -222,8 +205,8 @@ class SimpleUserImporterMappingForm extends FormBase {
 
    public function snp_redirect_to_cancel(array &$form, FormStateInterface $form_state)
    {
-      $parameters = $this->tempStore->get('parameters');
-      $form_state->setRedirect('simple_node_importer.import_user');
+     $parameters = $this->tempStore->get('parameters');     
+     $form_state->setRedirect('simple_node_importer.delete_node', $parameters);
    }
 }
 ?>
