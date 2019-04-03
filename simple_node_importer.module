@@ -325,7 +325,7 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
   else{
     $bundleFormId = 'user_register_form';
   }
-  $excludeArr = ['type', 'reference', 'name', 'mail', 'roles'];
+  $excludeArr = ['type', 'reference', 'name', 'mail', 'roles', 'status'];
   if($form_id == $bundleFormId && !empty($refKey)){
       $failedRow = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC(NULL, $refKey);
       foreach($failedRow as $rowVal){
@@ -363,18 +363,20 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
                 \Drupal::messenger()->addError($msg);
               }
             }
-            $fieldWidget = $form['account'][$fieldKey];
-            $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
-            if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
-              foreach($fieldSetVal['bugField'] as $err){
-                $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
-                \Drupal::messenger()->addError($msg);
-              }            
-              $form['account'][$fieldKey] = $fieldSetVal['fieldWidget'];
-            }
-            else{
-              $form['account'][$fieldKey] = $fieldSetVal;
-            }    
+            if(!in_array($fieldKey, ['type', 'status', 'reference'])){
+              $fieldWidget = $form['account'][$fieldKey];
+              $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
+              if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
+                foreach($fieldSetVal['bugField'] as $err){
+                  $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
+                  \Drupal::messenger()->addError($msg);
+                }            
+                $form['account'][$fieldKey] = $fieldSetVal['fieldWidget'];
+              }
+              else{
+                $form['account'][$fieldKey] = $fieldSetVal;
+              }    
+            }            
           }
 
         }

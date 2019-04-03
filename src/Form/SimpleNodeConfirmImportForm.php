@@ -101,7 +101,12 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	              $multiple_fields = array_keys($map_values[$field_name]);
 	              foreach ($multiple_fields as $k => $m_fields) {
 	                if ($m_fields == $column1) {
-	                  $record[$field_name][$k] = $field;
+										if(!empty($field)){
+											$record[$field_name][$k] = $field;
+										}
+										else{
+											$record[$field_name] = '';
+										}
 	                }
 	              }
 	            }
@@ -112,7 +117,6 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	      $record['type'] = $bundleType;
 	      $records[] = $record;
 	    }
-	   
 	    // Preapring batch parmeters to be execute.
 	    $batch = [
 	      'title' => t('Importing content to :bundleType.', array(':bundleType' => $bundleType)),

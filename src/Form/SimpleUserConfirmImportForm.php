@@ -77,28 +77,36 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 	$map_fields = array_keys($map_values);
 	$i = 1;
 	$records = array();
+	
 
 	while ($row = fgetcsv($handle)) {
 	  if ($i == 1) {
 		$i++;
 	    continue;
-	  }
+		}
+		
 	  foreach ($row as $k => $field) {
 	    $column1 = str_replace(' ', '_', strtolower($columns[$k]));
 	    foreach ($map_fields as $field_name) {
 	      if ($map_values[$field_name] == $column1) {
-	        $record[$field_name] = $field;
+					$record[$field_name] = $field;
 	      }
 	      else {
-	        if (is_array($map_values[$field_name])) {
-	          $multiple_fields = array_keys($map_values[$field_name]);
-	          foreach ($multiple_fields as $k => $m_fields) {
-	            if ($m_fields == $column1) {
+					
+					if (is_array($map_values[$field_name])) {
+						$multiple_fields = array_keys($map_values[$field_name]);
+	          foreach ($multiple_fields as $j => $m_fields) {
+				      if ($m_fields == $column1) {
 								if($m_fields == 'roles'){
 									$field = str_replace(' ', '_', strtolower($field));
 								}
-	              $record[$field_name][$k] = $field;
-	            }
+								if(!empty($field)){
+									$record[$field_name][$j] = $field;
+								}
+								else{
+									$record[$field_name] = NULL;
+								}
+							}
 	          }
 	        }
 	      }
@@ -108,7 +116,6 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 	  $record['type'] = 'user';
 	  $records[] = $record;
 	}
-	
 
 	// Preapring batch parmeters to be execute.
 	$batch = [

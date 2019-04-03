@@ -336,15 +336,16 @@ class GetServices {
               $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType);
               break;
             case 'entity_reference':
-              $preparedData = $this->prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting);
-              if(!$preparedData){
-                $flag = FALSE;
-                break;
-              }else{
-                $node[$field_machine_name] = $preparedData;
-              } 
+              if(!empty($data[$field_machine_name])){
+                $preparedData = $this->prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting);
+                if(!$preparedData){
+                  $flag = FALSE;
+                  break;
+                }else{
+                  $node[$field_machine_name] = $preparedData;
+                } 
+              }              
               break;
-
             case 'text':
             case 'string':
             case 'text_long':
@@ -505,7 +506,6 @@ class GetServices {
   }
 
   public function prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting) {
-
     $handler = $field_definition[$field_machine_name]->getSetting('handler');
     $flag = TRUE;
 
@@ -528,7 +528,6 @@ class GetServices {
 
             $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
             $termKey = key($taxos_obj);
-         
             if (!$taxos_obj && $allw_term) {
 
               $term = \Drupal\taxonomy\Entity\Term::create([
@@ -617,15 +616,13 @@ class GetServices {
           }
         }
       }
+      return $dataRow;
     }
-    return $dataRow;
   }
 
   public function getFieldValidation($fieldType, $field_data, $fieldIsRequired = FALSE) {
-
     $flag = TRUE;
-
-    if ($field_data == '' && $fieldIsRequired == TRUE) {
+    if (empty($field_data) && $fieldIsRequired == TRUE) {
       return $flag = FALSE;
     }
     else if (!empty($field_data)){
@@ -654,7 +651,6 @@ class GetServices {
       }
     }
     
-
     return $flag;
   }
 
@@ -777,9 +773,13 @@ class GetServices {
 
         case 'entity_reference':
           # code...
-          $target_bundle = Key($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']);
-          $target_type = $fieldWidget[0]['target_id']['#target_type'];
-        
+          if($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']){
+            $target_bundle = Key($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']);
+          }
+          else{
+            $target_bundle = '';
+          }
+          $target_type = $fieldWidget[0]['target_id']['#target_type'];       
 
           if($target_type == "taxonomy_term"){
             if(is_array($fieldVal) && !empty($fieldVal)){

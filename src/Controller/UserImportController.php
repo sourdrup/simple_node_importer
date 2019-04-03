@@ -55,13 +55,12 @@ public static function UserImport($records, &$context) {
       'mail' => !empty($record['mail']) ? $record['mail'] : '',
       'name' => $record['name'],
       'status' => ($record['status'] == 1 || $record['status'] == TRUE) ? TRUE : FALSE,
-      'roles' => $record['roles']
+      'roles' => !empty($record['roles']) ? $record['roles'] : 'authenticated'
     ];
 
     if(empty($batch_result['result'])){
       $batch_result = \Drupal::service('snp.get_services')->checkFieldWidget($field_names, $record, $user_data, $entity_type);
     }
-
     if (!empty($batch_result['result'])) {
       if (!isset($context['results']['failed'])) {
         $context['results']['failed'] = 0;
