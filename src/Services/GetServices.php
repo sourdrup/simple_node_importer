@@ -337,6 +337,7 @@ class GetServices {
               break;
             case 'entity_reference':
               if(!empty($data[$field_machine_name])){
+                dsm($field_definition, "fiedldefin");
                 $preparedData = $this->prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting);
                 if($preparedData === FALSE){
                   $flag = FALSE;
@@ -521,7 +522,9 @@ class GetServices {
       }
       else {
         if (is_array($data[$field_machine_name])) {
+
           foreach ($data[$field_machine_name] as $k => $term_name) {
+
             if($term_name){
               $termArray = [
                 'name' => $term_name,
@@ -543,7 +546,9 @@ class GetServices {
                 $dataRow[$k]['target_id'] = $term->id();
               }
               else {
-                $dataRow[$k]['target_id'] = $taxos_obj[$termKey]->id();
+                $termObj = $taxos_obj[$termKey];
+                $tid = $termObj->id();
+                $dataRow[$k]['target_id'] = $tid;
               }
             }            
           }
@@ -567,7 +572,9 @@ class GetServices {
             $dataRow[0]['target_id'] = $term->id();
           }
           else {
-            $dataRow[0]['target_id'] = $taxos_obj[$termKey]->id();
+            $termObj = $taxos_obj[$termKey];
+            $tid = $termObj->id();
+            $dataRow[0]['target_id'] = $tid;
           }
         }
       }

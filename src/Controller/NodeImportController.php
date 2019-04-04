@@ -396,10 +396,10 @@ class NodeImportController extends ControllerBase {
 
         // generate add node link
       if($entityType == 'user'){
-        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('user.admin_create', array('entity_type' => $val['type'], 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
+        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('user.admin_create', array('entity_type' => $entityType, 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
       }
       else{
-        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('node.add', array('entity_type' => $val['type'], 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
+        $generateAddLink =  Link::fromTextAndUrl(t('Edit & Save'), Url::fromRoute('node.add', array('node_type' => $val['type'], 'entity_type' => $entityType, 'refkey' => $val['reference'], 'bundle' => $val['type'])))->toString();
       }
         
         $addLink = $generateAddLink->getGeneratedLink();
