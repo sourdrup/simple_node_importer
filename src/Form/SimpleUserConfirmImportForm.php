@@ -89,7 +89,7 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 	    $column1 = str_replace(' ', '_', strtolower($columns[$k]));
 	    foreach ($map_fields as $field_name) {
 	      if ($map_values[$field_name] == $column1) {
-					$record[$field_name] = $field;
+					$record[$field_name] = trim($field);
 	      }
 	      else {
 					
@@ -102,7 +102,7 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 									$field = str_replace(' ', '_', strtolower($field));
 								}
 								if(!empty($field)){
-									$record[$field_name][$j] = $field;
+									$record[$field_name][$j] = trim($field);
 								}
 								else{
 									$record[$field_name][$j] = NULL;
