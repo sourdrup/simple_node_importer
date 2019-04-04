@@ -338,7 +338,7 @@ class GetServices {
             case 'entity_reference':
               if(!empty($data[$field_machine_name])){
                 $preparedData = $this->prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting);
-                if(!$preparedData){
+                if($preparedData === FALSE){
                   $flag = FALSE;
                   break;
                 }else{
@@ -508,6 +508,7 @@ class GetServices {
   public function prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting) {
     $handler = $field_definition[$field_machine_name]->getSetting('handler');
     $flag = TRUE;
+    $dataRow = '';
 
     if($fieldSetting == 'taxonomy_term'){
       $handler_settings = $field_definition[$field_machine_name]->getSetting('handler_settings');
@@ -521,32 +522,33 @@ class GetServices {
       else {
         if (is_array($data[$field_machine_name])) {
           foreach ($data[$field_machine_name] as $k => $term_name) {
-            $termArray = [
-              'name' => $term_name,
-              'vid' => $vocabulary_name
-            ];
-
-            $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
-            $termKey = key($taxos_obj);
-            if (!$taxos_obj && $allw_term) {
-
-              $term = \Drupal\taxonomy\Entity\Term::create([
-                  'vid' => $vocabulary_name,
-                  'name' => $term_name,
-              ]);
-
-              $term->enforceIsNew();
-              $term->save();
-
-              $dataRow[$k]['target_id'] = $term->id();
-            }
-            else {
-              $dataRow[$k]['target_id'] = $taxos_obj[$termKey]->id();
-            }
+            if($term_name){
+              $termArray = [
+                'name' => $term_name,
+                'vid' => $vocabulary_name
+              ];
+  
+              $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
+              $termKey = key($taxos_obj);
+              if (!$taxos_obj && $allw_term) {
+  
+                $term = \Drupal\taxonomy\Entity\Term::create([
+                    'vid' => $vocabulary_name,
+                    'name' => $term_name,
+                ]);
+  
+                $term->enforceIsNew();
+                $term->save();
+  
+                $dataRow[$k]['target_id'] = $term->id();
+              }
+              else {
+                $dataRow[$k]['target_id'] = $taxos_obj[$termKey]->id();
+              }
+            }            
           }
         }
         else {
-
           $termArray = [
               'name' => $data[$field_machine_name],
               'vid' => $vocabulary_name
@@ -576,27 +578,29 @@ class GetServices {
       $userEmail = $data[$field_machine_name];
       if(is_array($userEmail)){
         foreach($userEmail as $email){
-          $flag = $this->getFieldValidation('email', $email);
-          if($flag){
-            $user = $this->getUserByEmail($email, 'content_validate');
-            if($user && !is_integer($user)){
-              $dataRow[] = $user->id();
-            }
-            else{
-              return $flag = FALSE;
-            }
-          }else{
-            $uid = $this->getUserByUsername($email, 'content_validate');
-            if($uid){
-              $dataRow[] = $uid;
-            }
-            else{
-              return $flag = FALSE;
+          if($email){
+            $flag = $this->getFieldValidation('email', $email);
+            if($flag){
+              $user = $this->getUserByEmail($email, 'content_validate');
+              if($user && !is_integer($user)){
+                $dataRow[] = $user->id();
+              }
+              else{
+                return $flag = FALSE;
+              }
+            }else{
+              $uid = $this->getUserByUsername($email, 'content_validate');
+              if($uid){
+                $dataRow[] = $uid;
+              }
+              else{
+                return $flag = FALSE;
+              }
             }
           }
         }
       }
-      else{
+      else if($userEmail){
        $flag = $this->getFieldValidation('email', $userEmail);
         if($flag){
           $user = $this->getUserByEmail($userEmail, 'content_validate');
@@ -622,6 +626,21 @@ class GetServices {
 
   public function getFieldValidation($fieldType, $field_data, $fieldIsRequired = FALSE) {
     $flag = TRUE;
+    $k = 0;
+    if(is_array($field_data) && $fieldIsRequired == TRUE){
+      if(count($field_data) == 1 && empty($field_data[$k])){
+        return $flag = FALSE;
+      }
+      else{
+        foreach($field_data as $key => $fieldVal){
+          $flags[$key] = empty($fieldVal) ? FALSE : TRUE;
+        }
+        if(!in_array(TRUE, $flags)){
+          return $flag = FALSE;
+        }
+      }
+    }
+
     if (empty($field_data) && $fieldIsRequired == TRUE) {
       return $flag = FALSE;
     }
@@ -784,14 +803,16 @@ class GetServices {
           if($target_type == "taxonomy_term"){
             if(is_array($fieldVal) && !empty($fieldVal)){
               foreach ($fieldVal as $termName) {
-                # code...
-                $termArray = [
-                  'name' => $termName,
-                  'vid' => $target_bundle
-                ];
+                if($termName){
+                  # code...
+                  $termArray = [
+                    'name' => $termName,
+                    'vid' => $target_bundle
+                  ];
 
-                $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
-                $refObject[] = key($taxos_obj);
+                  $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
+                  $refObject[] = key($taxos_obj);
+                }
               }
             }
             else if(!empty($fieldVal)){
@@ -808,22 +829,23 @@ class GetServices {
               $fields[] = $fieldKey;
             }           
           }
-          else if($target_type == "user"){
-            $user = user_load_by_name($fieldVal);
+          else if($target_type == "user"){            
             if(is_array($fieldVal) && !empty($fieldVal)){
-              foreach ($fieldVal as $userEmail) {
-                if(filter_var($userEmail, FILTER_VALIDATE_EMAIL)){
+              foreach ($fieldVal as $userData) {
+                if(filter_var($userData, FILTER_VALIDATE_EMAIL) && !empty($userData)){ 
                    # code...
-                  $user = user_load_by_mail($userEmail);
+                  $user = user_load_by_mail($userData);
                   if(!empty($user)){
                     $userObject[] = $user->id();
                   }
                 }
-                else{
-                  break;
-                }               
+                else if(!empty($userData)){
+                  $user = user_load_by_name($userData);
+                  if(!empty($user)){
+                    $userObject[] = $user->id();
+                  }
+                }          
               }
-              $fields[] = $fieldKey;
             }
             else if(!empty($fieldVal)){
               if(filter_var($fieldVal, FILTER_VALIDATE_EMAIL)){
@@ -833,11 +855,11 @@ class GetServices {
                   $userObject = $user->id();
                 }
               }
-              else if(!empty($user)){
-                $userObject = $user->id();
-              }
-              else{
-                $fields[] = $fieldKey;
+              else {
+                $user = user_load_by_name($fieldVal);
+                if(!empty($user)){
+                  $userObject[] = $user->id();
+                }
               }
             }
 

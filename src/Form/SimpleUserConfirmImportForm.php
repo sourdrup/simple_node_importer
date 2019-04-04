@@ -84,7 +84,7 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 		$i++;
 	    continue;
 		}
-		
+
 	  foreach ($row as $k => $field) {
 	    $column1 = str_replace(' ', '_', strtolower($columns[$k]));
 	    foreach ($map_fields as $field_name) {
@@ -95,6 +95,7 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 					
 					if (is_array($map_values[$field_name])) {
 						$multiple_fields = array_keys($map_values[$field_name]);
+
 	          foreach ($multiple_fields as $j => $m_fields) {
 				      if ($m_fields == $column1) {
 								if($m_fields == 'roles'){
@@ -104,7 +105,7 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 									$record[$field_name][$j] = $field;
 								}
 								else{
-									$record[$field_name] = NULL;
+									$record[$field_name][$j] = NULL;
 								}
 							}
 	          }
