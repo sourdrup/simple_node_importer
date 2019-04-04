@@ -337,7 +337,6 @@ class GetServices {
               break;
             case 'entity_reference':
               if(!empty($data[$field_machine_name])){
-                dsm($field_definition, "fiedldefin");
                 $preparedData = $this->prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting);
                 if($preparedData === FALSE){
                   $flag = FALSE;
@@ -509,22 +508,21 @@ class GetServices {
   public function prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting) {
     $handler = $field_definition[$field_machine_name]->getSetting('handler');
     $flag = TRUE;
-    $dataRow = '';
 
     if($fieldSetting == 'taxonomy_term'){
       $handler_settings = $field_definition[$field_machine_name]->getSetting('handler_settings');
       $target_bundles = $handler_settings['target_bundles'];
-      $vocabulary_name = is_array($target_bundles) ? $target_bundles : key($target_bundles);
+      $vocabulary_name = (is_array($target_bundles) && count($target_bundles) > 1) ? $target_bundles : key($target_bundles);
       $allw_term = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_add_term');    
       // code for taxonomy data handling
       if((is_array($vocabulary_name) && count($vocabulary_name) > 1) || empty($data[$field_machine_name])){
         return $flag = FALSE;
       }
       else {
+
         if (is_array($data[$field_machine_name])) {
 
           foreach ($data[$field_machine_name] as $k => $term_name) {
-
             if($term_name){
               $termArray = [
                 'name' => $term_name,
