@@ -94,7 +94,7 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	        $column1 = str_replace(' ', '_', strtolower($columns[$k]));
 	        foreach ($map_fields as $field_name) {
 	          if ($map_values[$field_name] == $column1) {
-	            $record[$field_name] = $field;
+	            $record[$field_name] = trim($field);
 	          }
 	          else {
 	            if (is_array($map_values[$field_name]) && !empty($field)) {
@@ -102,7 +102,7 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	              foreach ($multiple_fields as $k => $m_fields) {
 	                if ($m_fields == $column1) {
 										if(!empty($field)){
-											$record[$field_name][$k] = $field;
+											$record[$field_name][$k] = trim($field);
 										}
 										else{
 											$record[$field_name] = '';
