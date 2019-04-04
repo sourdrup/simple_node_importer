@@ -513,7 +513,8 @@ class GetServices {
       $handler_settings = $field_definition[$field_machine_name]->getSetting('handler_settings');
       $target_bundles = $handler_settings['target_bundles'];
       $vocabulary_name = (is_array($target_bundles) && count($target_bundles) > 1) ? $target_bundles : key($target_bundles);
-      $allw_term = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_add_term');    
+      $allw_term = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_add_term');   
+      
       // code for taxonomy data handling
       if((is_array($vocabulary_name) && count($vocabulary_name) > 1) || empty($data[$field_machine_name])){
         return $flag = FALSE;
@@ -559,10 +560,11 @@ class GetServices {
         
           $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
           $termKey = key($taxos_obj);
+
           if (!$taxos_obj && $allw_term) {
             $term = \Drupal\taxonomy\Entity\Term::create([
                 'vid' => $vocabulary_name,
-                'name' => $term_name,
+                'name' => $data[$field_machine_name],
             ]);
 
             $term->enforceIsNew();
@@ -571,7 +573,7 @@ class GetServices {
           }
           else {
             $termObj = $taxos_obj[$termKey];
-            $tid = $termObj->id();
+            $tid = $termObj->id(); 
             $dataRow[0]['target_id'] = $tid;
           }
         }
