@@ -89,34 +89,37 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	        $i++;
 	        continue;
 	      }
-	      	    
+				
 	      foreach ($row as $k => $field) {
 	        $column1 = str_replace(' ', '_', strtolower($columns[$k]));
 	        foreach ($map_fields as $field_name) {
+
 	          if ($map_values[$field_name] == $column1) {
 	            $record[$field_name] = trim($field);
 	          }
 	          else {
-	            if (is_array($map_values[$field_name]) && !empty($field)) {
+	            if (is_array($map_values[$field_name])) {
 	              $multiple_fields = array_keys($map_values[$field_name]);
-	              foreach ($multiple_fields as $k => $m_fields) {
+	              foreach ($multiple_fields as $j => $m_fields) {
 	                if ($m_fields == $column1) {
 										if(!empty($field)){
-											$record[$field_name][$k] = trim($field);
+											$record[$field_name][$j] = trim($field);
 										}
 										else{
-											$record[$field_name] = '';
+											$record[$field_name][$j] = NULL;
 										}
 	                }
 	              }
 	            }
 	          }
-	        }
+					}
 	      }
 	      $record['nid'] = $node->id();
-	      $record['type'] = $bundleType;
+				$record['type'] = $bundleType;
+			
 	      $records[] = $record;
-	    }
+			}
+
 	    // Preapring batch parmeters to be execute.
 	    $batch = [
 	      'title' => t('Importing content to :bundleType.', array(':bundleType' => $bundleType)),
@@ -134,9 +137,9 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
 	    
 	    // Set the batch operation.
 	    batch_set($batch);
-	    fclose($handle);
+			fclose($handle);
 	}
-
+	
 	/**
 	* {@inheritdoc}
 	*/

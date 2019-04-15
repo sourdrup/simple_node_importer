@@ -11,6 +11,7 @@
 namespace Drupal\simple_node_importer\Services;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Datetime;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
@@ -289,7 +290,6 @@ class GetServices {
   * Checks the widget type of each field.
   */
   public function checkFieldWidget($field_names, $data, $node, $entity_type) {
-
     $excludeFieldArr = ['name', 'mail','status', 'roles', 'nid','type', 'uid', 'title'];
 
     $flag = TRUE;
@@ -311,7 +311,7 @@ class GetServices {
         $fieldTypeProvider = $field_info->getTypeProvider();
         $fieldCardinality = $field_info->getCardinality();
         $fieldIsRequired = $fieldProperties->isRequired();
-      
+        
         if($fieldType == 'entity_reference'){
           $fieldSetting = $field_info->getSetting('target_type');
         }
@@ -320,12 +320,9 @@ class GetServices {
         }
         else{
           $fieldSetting = NULL;
-        }
-
+        }        
         $dataValidated = $this->getFieldValidation($fieldType, $data[$field_machine_name], $fieldIsRequired);
-
         if ($dataValidated){
-
           switch ($fieldType) {
             case 'email':
               $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType);
@@ -348,9 +345,11 @@ class GetServices {
               break;
             case 'text':
             case 'string':
+            case 'string_long':
             case 'text_long':
             case 'text_with_summary':
               $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType);
+              dsm($node[$field_machine_name]);
               break;
 
             case 'boolean':
@@ -358,7 +357,14 @@ class GetServices {
               break;
 
             case 'datetime':
-              $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType, $fieldSetting);
+              $dateValue = $this->buildNodeData($data[$field_machine_name], $fieldType, $fieldSetting);
+              if($dateValue){
+                $node[$field_machine_name] = $dateValue;
+              }
+              else if($dateValue === FALSE){
+                $flag = FALSE;
+                break;
+              }
               break;
 
             case 'number_integer':
@@ -404,7 +410,6 @@ class GetServices {
         }        
       }// end of 1st if   
     }// end of foreach
-
     if($flag === FALSE){
       $node = array();
       $node['result'] = $data;
@@ -508,7 +513,7 @@ class GetServices {
   public function prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting) {
     $handler = $field_definition[$field_machine_name]->getSetting('handler');
     $flag = TRUE;
-
+    $dataRow = [];
     if($fieldSetting == 'taxonomy_term'){
       $handler_settings = $field_definition[$field_machine_name]->getSetting('handler_settings');
       $target_bundles = $handler_settings['target_bundles'];
@@ -635,17 +640,13 @@ class GetServices {
     $flag = TRUE;
     $k = 0;
     if(is_array($field_data) && $fieldIsRequired == TRUE){
-      if(count($field_data) == 1 && empty($field_data[$k])){
-        return $flag = FALSE;
-      }
-      else{
-        foreach($field_data as $key => $fieldVal){
+      foreach($field_data as $key => $fieldVal){
           $flags[$key] = empty($fieldVal) ? FALSE : TRUE;
         }
+
         if(!in_array(TRUE, $flags)){
           return $flag = FALSE;
         }
-      }
     }
 
     if (empty($field_data) && $fieldIsRequired == TRUE) {
@@ -654,36 +655,68 @@ class GetServices {
     else if (!empty($field_data)){
       switch($fieldType) {
         case 'email':
+          $flg = 0;
           if (is_array($field_data)){
             foreach($field_data as $fieldData){
-              $flag = (!empty($fieldData) && !filter_var($fieldData, FILTER_VALIDATE_EMAIL)) ? FALSE : TRUE;
+              if(!empty($fieldData) && filter_var($fieldData, FILTER_VALIDATE_EMAIL) != False){
+                $flg = 1;
+              }
+              else if(!empty($fieldData)){
+                return $flag = FALSE;
+              }
             }
+            $flag = (($flg == 0) && $fieldIsRequired == TRUE) ?  FALSE : TRUE;             
           }
           else{
-            $flag = (!empty($field_data) && !filter_var($field_data, FILTER_VALIDATE_EMAIL)) ? FALSE : TRUE;
+            if(!empty($field_data) && filter_var($field_data, FILTER_VALIDATE_EMAIL) != False){
+              $flag = TRUE;
+            }
+            else if(empty($field_data) && $fieldIsRequired == FALSE){
+              $flag = TRUE;
+            }
+            else{
+              $flag = FALSE;
+            }
           }
           break;
         case 'image':
         case 'link':
-          if (is_array($field_data)){
-            foreach($field_data as $fieldData){
-              $flag = (!empty($fieldData) && !filter_var($fieldData, FILTER_VALIDATE_URL)) ? FALSE : TRUE;
+        $flg = 0;
+        if (is_array($field_data)){
+          foreach($field_data as $fieldData){
+            if(!empty($fieldData) && filter_var($fieldData, FILTER_VALIDATE_URL) != False){
+              $flg = 1;
+            }
+            else if(!empty($fieldData)){
+              return $flag = FALSE;
             }
           }
+          $flag = (($flg == 0) && $fieldIsRequired == TRUE) ?  FALSE : TRUE;             
+        }
           else{
-            $flag = (!empty($field_data) && !filter_var($field_data, FILTER_VALIDATE_URL)) ? FALSE : TRUE;
+            if(!empty($field_data) && filter_var($field_data, FILTER_VALIDATE_URL) != False){
+              $flag = TRUE;
+            }
+            else if(empty($field_data) && $fieldIsRequired == FALSE){
+              $flag = TRUE;
+            }
+            else{
+              $flag = FALSE;
+            }
           }
           break;
       }
     }
-    
     return $flag;
   }
 
   public function buildNodeData($data, $fieldType, $fieldSetting = NULL){
     $i = 0;
     $fieldTypes = ['number_integer', 'number_float'];
+    $textFieldTypes = ['string_long', 'string'];
+    $Dateformat = ($fieldSetting == 'datetime') ? 'Y-m-d\TH:i:s' : 'Y-m-d';
     $dataRow = [];
+    
 
     if (is_array($data) && !empty($data)) {
       foreach ($data as $value) {
@@ -693,13 +726,23 @@ class GetServices {
           $dataRow[$i]['target_id'] = !empty($file) ? $file->id() : NULL;
         }
         else if($fieldType == 'datetime'){
-          $dataRow[$i]['value'] = ($fieldSetting == 'datetime') ? date_format(date_create($value), 'Y-m-d\TH:i:s') : date_format(date_create($value), 'Y/m/d');
+          if(!empty($value)){
+            if($this->validateDateExpression($value)){
+              $dataRow[$i]['value'] = ($fieldSetting == 'datetime') ? date_format(date_create($value), 'Y-m-d\TH:i:s') : date_format(date_create($value), 'Y-m-d');
+            }
+            else{
+              return FALSE;
+            }
+          }
         }
         else if(in_array($fieldType, $fieldTypes)){
           $dataRow[$i]['value'] = $value;
         }
         else if($fieldType == 'link'){
-          $dataRow[$i]['uri'] = $data;
+          $dataRow[$i]['uri'] = $value;
+        }
+        else if(in_array($fieldType, $textFieldTypes)){
+          $dataRow[$i]['value'] = utf8_encode(trim($value));
         }
         else{
           // code...
@@ -707,6 +750,7 @@ class GetServices {
         }        
         $i++;
       }
+      
     }
     else if(!empty($data)) {
       if(in_array($fieldType, ['image','file'])){
@@ -715,13 +759,21 @@ class GetServices {
         $dataRow[0]['target_id'] = !empty($file) ? $file->id() : NULL;
       }
       else if($fieldType == 'datetime'){
-        $dataRow['value'] = ($fieldSetting == 'datetime') ? date_format(date_create($data), 'Y-m-d\TH:i:s') : date_format(date_create($data), 'Y-m-d');
+        if($this->validateDateExpression($data)){
+          $dataRow['value'] = ($fieldSetting == 'datetime') ? date_format(date_create($data), 'Y-m-d\TH:i:s') : date_format(date_create($data), 'Y-m-d');
+        }
+        else{
+          return FALSE;
+        }
       }
       else if(in_array($fieldType, $fieldTypes)){
         $dataRow[0]['value'] = $data;
       }
       else if($fieldType == 'link'){
         $dataRow['uri'] = $data;
+      }
+      else if(in_array($fieldType, $textFieldTypes)){
+        $dataRow[0]['value'] = utf8_encode(trim($data));
       }
       else{
         // code...
@@ -758,7 +810,6 @@ class GetServices {
   }
 
   public static function generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundle){
-
     $excludeFieldArr = ['type', 'nid', 'uid', 'title', 'reference', 'status', 'name', 'mail', 'roles'];
     $flag = TRUE;
     $key = 0;
@@ -775,26 +826,46 @@ class GetServices {
       switch ($fieldType) {
         case 'text_with_summary':
           # code...
+          if($fieldIsRequire && empty($fieldVal)){
+            $fields[] = $fieldKey;
+          }
+          else{
           $fieldWidget[0]['#default_value'] = $fieldVal;
+          }
           break;
         
         case 'list_float':
         case 'list_integer':
         case 'list_string':
           if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
+            $flag = 0;
             foreach ($fieldVal as $value) {
               # code...
+              if(!empty($value)){
+              $flag = 1;
               $fieldWidget['#default_value'][] = $value;
+              }
+            }
+            if($fieldIsRequire && $flag == 0){
+              $fields[] = $fieldKey;
             }
           }
           else if(!empty($fieldVal)){
             $fieldWidget['#default_value'] = $fieldVal;
           }
+          else if($fieldIsRequired && empty($fieldVal)){
+            $fields[] = $fieldKey; 
+          }
           break;
 
         case 'boolean':
           # code...
+          if($fieldIsRequire && empty($fieldVal)){
+            $fields[] = $fieldKey;
+          }
+          else{
           $fieldWidget['value']['#default_value'] = $fieldVal;
+          }
           break;
 
         case 'entity_reference':
@@ -808,10 +879,12 @@ class GetServices {
           $target_type = $fieldWidget[0]['target_id']['#target_type'];       
 
           if($target_type == "taxonomy_term"){
+            $flag =0;
             if(is_array($fieldVal) && !empty($fieldVal)){
               foreach ($fieldVal as $termName) {
                 if($termName){
                   # code...
+                  $flag = 1;
                   $termArray = [
                     'name' => $termName,
                     'vid' => $target_bundle
@@ -820,6 +893,9 @@ class GetServices {
                   $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
                   $refObject[] = key($taxos_obj);
                 }
+              }
+              if($flag == 0 && $fieldIsRequired){
+                $fields[] = $fieldKey;
               }
             }
             else if(!empty($fieldVal)){
@@ -831,12 +907,16 @@ class GetServices {
 
               $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
               $refObject = key($taxos_obj);
-            } 
-            if(empty($refObject)){
+            }
+            else if($fieldIsRequired && empty($refObject)){
               $fields[] = $fieldKey;
-            }           
+            } 
+            // if(empty($refObject)){
+            //   $fields[] = $fieldKey;
+            // }           
           }
-          else if($target_type == "user"){            
+          else if($target_type == "user"){          
+            $flag = 0;  
             if(is_array($fieldVal) && !empty($fieldVal)){
               foreach ($fieldVal as $userData) {
                 if(filter_var($userData, FILTER_VALIDATE_EMAIL) && !empty($userData)){ 
@@ -844,14 +924,22 @@ class GetServices {
                   $user = user_load_by_mail($userData);
                   if(!empty($user)){
                     $userObject[] = $user->id();
+                    $flag = 1;
                   }
                 }
                 else if(!empty($userData)){
                   $user = user_load_by_name($userData);
                   if(!empty($user)){
                     $userObject[] = $user->id();
+                    $flag = 1;
                   }
-                }          
+                }
+                else{
+                  $fields[] = $fieldKey;
+                }         
+              }
+              if($flag == 0 && $fieldIsRequire){
+                $fields[] = $fieldKey;
               }
             }
             else if(!empty($fieldVal)){
@@ -862,16 +950,18 @@ class GetServices {
                   $userObject = $user->id();
                 }
               }
-              else {
+              else{
                 $user = user_load_by_name($fieldVal);
-                if(!empty($user)){
+                if($user != FALSE){
                   $userObject[] = $user->id();
+                }
+                else{
+                  $fields[] = $fieldKey;   
                 }
               }
             }
-
-            if(empty($userObject) && !empty($fieldVal)){
-              $fields[] = $fieldKey;
+            if($fieldIsRequire && !empty($fieldVal)){
+              $fields[] = $fieldKey;           
             }
           }
       
@@ -900,48 +990,101 @@ class GetServices {
           # code...
           $dateFormat = $fieldWidget[0]['value']['#date_date_format'];
           $timeFormat = $fieldWidget[0]['value']['#date_time_format'];
-          
-          if(!empty($dateFormat) && !empty($timeFormat)){
-            $date = date_create($fieldVal);
-            $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
-            $fieldWidget[0]['value']['#default_value'] = $dateTime;
+          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
+            $flag = 0;
+            foreach ($fieldVal as $date) {
+              if(!empty($date)){
+                if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($date) && !empty($dateFormat) && !empty($timeFormat)){
+                  $date = date_create($date);                
+                  $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+                  $fieldWidget[0]['value']['#default_value'] = $dateTime;
+                  $flag = 1;
+                }
+                else if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($date) && !empty($dateFormat) && empty($timeFormat)){
+                  $date = date_create($date);
+                  $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+                  $fieldWidget[0]['value']['#default_value'] = $dateTime;
+                  $flag = 1;
+                }
+                else{
+                  $fields[] = $fieldKey;
+                }
+              }
+            }
+           
+            if($flag == 0 && $fieldIsRequired){
+              $fields[] = $fieldKey;
+            }
           }
-          else if(!empty($dateFormat) && empty($timeFormat)){
-            $date = date_create($fieldVal);
-            $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
-            $fieldWidget[0]['value']['#default_value'] = $dateTime;
+          else if(!empty($fieldVal)){
+            if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($fieldVal) && !empty($dateFormat) && !empty($timeFormat)){
+              $date = date_create($fieldVal);
+              $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+              $fieldWidget[0]['value']['#default_value'] = $dateTime;
+            }
+            else if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($fieldVal) && !empty($dateFormat) && empty($timeFormat)){
+              $date = date_create($fieldVal);
+              $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+              $fieldWidget[0]['value']['#default_value'] = $dateTime;
+            }
+            else{
+              $fields[] = $fieldKey;
+            }
+          }
+          else if($flag == 0 && $fieldIsRequired){
+            $fields[] = $fieldKey;
           }
           break;
 
         case 'string':
+        $flag = 0;
           if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
             foreach ($fieldVal as $value) {
               # code...
-              $fieldWidget[$key] = $fieldWidget[0];
-              $fieldWidget[$key++]['value']['#default_value'][] = $value;
+                if(!empty($value)){
+                $fieldWidget[$key] = $fieldWidget[0];
+                $fieldWidget[$key++]['value']['#default_value'][] = $value;
+                $flag =1;
+              }
+            }
+            if($flag == 0 && $fieldIsRequired){
+              $fields[] = $fieldKey;
             }
           }
           else if(!empty($fieldVal)){
             $fieldWidget[0]['value']['#default_value'] = $fieldVal;
+          }
+          else if($fieldIsRequired && empty($fieldVal)){
+            $fields[] = $fieldKey;
           }
           break;
 
         case 'file':
         case 'image':
           # code...
+          $flag = 0;
           if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
               foreach ($fieldVal as $file) {
                 # code...
-                if(filter_var($file, FILTER_VALIDATE_URL)){
-                  $fid = \Drupal\simple_node_importer\Services\GetServices::getImageFID($file);
-                  if(!empty($fid)){
-                    $fieldWidget[$key] = $fieldWidget[0];
-                    $fieldWidget[$key++]['#default_value']['fids'][] = $fid;
-                  }      
-                }
-                else{
-                   $fields[] = $fieldKey;   
-                }      
+                if(!empty($file)){
+                  if(filter_var($file, FILTER_VALIDATE_URL)){
+                    $fid = \Drupal\simple_node_importer\Services\GetServices::getImageFID($file);
+                    if(!empty($fid)){
+                      $fieldWidget[$key] = $fieldWidget[0];
+                      $fieldWidget[$key++]['#default_value']['fids'][] = $fid;
+                      $flag = 1;
+                    } 
+                    else{
+                      $fields[] = $fieldKey;   
+                    }      
+                  }
+                  else{
+                    $fields[] = $fieldKey;   
+                  } 
+                }     
+              }
+              if($flag == 0 && $fieldIsRequired){
+                $fields[] = $fieldKey;
               }
                              
           }
@@ -956,19 +1099,28 @@ class GetServices {
                 $fields[] = $fieldKey;
             }      
           }      
+          else if($fieldIsRequired && empty($fieldVal)){
+              $fields[] = $fieldKey;
+          }      
           break;
 
         case 'email':
+          $flag = 0;
           if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
             foreach($fieldVal as $email){
-              if(filter_var($email, FILTER_VALIDATE_EMAIL)){
-                #code..
-                $fieldWidget[$key] = $fieldWidget[0];
-                $fieldWidget[$key++]['value']['#default_value'] = $email;
-              }
-              else{
-                $fields[] = $fieldKey;
-              }
+            if($email != ''){  
+                  if(filter_var($email, FILTER_VALIDATE_EMAIL)){
+                    $flag =1;
+                    $fieldWidget[$key] = $fieldWidget[0];
+                    $fieldWidget[$key++]['value']['#default_value'] = $email;
+                  }
+                  else{
+                    $fields[] = $fieldKey;
+                  }
+                }
+            }
+            if($flag == 0 && $fieldIsRequired){
+              $fields[] = $fieldKey;
             }
             
           }
@@ -981,19 +1133,27 @@ class GetServices {
               $fields[] = $fieldKey;
             }
           }         
+          else if($fieldIsRequired && empty($fieldVal)){
+            $fields[] = $fieldKey;
+          }
           break;
 
         case 'link':
+        $flag = 0;
           if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
             foreach($fieldVal as $link){
               if(filter_var($link, FILTER_VALIDATE_URL)){
                 #code..
+                $flag =1;
                 $fieldWidget[$key] = $fieldWidget[0];
                 $fieldWidget[$key++]['uri']['#default_value'][] = $link;
               }
               else{
                 $fields[] = $fieldKey;
               }         
+            }
+            if($flag == 0 && $fieldIsRequired){
+              $fields[] = $fieldKey;
             }
             
           }
@@ -1006,18 +1166,19 @@ class GetServices {
               $fields[] = $fieldKey;
             }      
           }
+         else if($fieldIsRequired && empty($fieldVal)){
+           $fields[] = $fieldKey;
+          }      
           break;
       }
     }
     else{
-
       if($fieldKey == 'title' && !empty($fieldVal)){
         $fieldWidget[0]['value']['#default_value'] = $fieldVal;
       }
       else if($fieldKey == 'title' && empty($fieldVal)){
         $fields[] = $fieldKey;
       }
-
       // for user bundle type
       if(in_array($fieldKey, ['name', 'mail', 'roles'])){
         if($fieldKey == 'name' && empty($fieldVal)){
@@ -1028,17 +1189,22 @@ class GetServices {
         }
       }
       
-      if($fieldKey == 'uid' && !empty($fieldVal)){
-        if(filter_var($fieldVal, FILTER_VALIDATE_EMAIL)){
-          $user = user_load_by_mail($fieldVal);
-          if(!empty($user)){
+      if($fieldKey == 'uid'){
+        if(!empty($fieldVal)){
+          $uname = user_load_by_name($fieldVal);
+          $umail = user_load_by_mail($fieldVal);
+          if($uname != FALSE || $umail != FALSE){
+            $user = ($uname != FALSE) ? $uname : $umail;
             $fieldWidget[0]['target_id']['#default_value'] = \Drupal\user\Entity\User::load($user->id());
           }
+          else{
+            $fields[] = $fieldKey;
+          }
         }
-        else{
+        else if(empty($fieldVal)){
           $fields[] = $fieldKey;
         }
-      }
+    }
     }
     
     if (!empty($fields)){
@@ -1081,6 +1247,27 @@ class GetServices {
     ];
 
     return $fieldInfoArray;
+  }
+
+  public function validateDate($date, $format = 'Y-m-d H:i:s'){
+    if($this->validateDateExpression($date)){
+      $d = DrupalDateTime::createFromFormat($format, $date);
+      return $d && $d->format($format) == $date;
+    }
+    else{
+      return FALSE;
+    }
+    
+  }
+
+  public function validateDateExpression($date){
+    $regExp = "#^[0-9ampAMP :/-]+$#";
+    if(preg_match($regExp, $date)){
+      return TRUE;
+    }
+    else{
+      return FALSE;
+    }
   }
 
 }

@@ -69,7 +69,6 @@ public static function UserImport($records, &$context) {
     if(empty($batch_result['result'])){
       $batch_result = \Drupal::service('snp.get_services')->checkFieldWidget($field_names, $record, $user_data, $entity_type);
     }
-    
     if (!empty($batch_result['result'])) {
       if (!isset($context['results']['failed'])) {
         $context['results']['failed'] = 0;

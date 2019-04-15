@@ -70,8 +70,7 @@ class SimpleUserImporterMappingForm extends FormBase {
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',
         '#fields' => array(
-          // 'allowed_date_format' => $allowed_date_format,
-          'filepath' => $filepath,
+        'filepath' => $filepath,
         )
     
       ];
@@ -123,7 +122,6 @@ class SimpleUserImporterMappingForm extends FormBase {
         '#value' => t('Import'),
         '#weight' => 49,
       ];
-     // $this->tempStore->set('parameters', $parameters);
       $form['cancel'] = [
         '#type' => 'submit',
         '#value' => t('cancel'),

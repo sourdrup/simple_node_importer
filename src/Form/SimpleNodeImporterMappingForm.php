@@ -78,19 +78,12 @@ class SimpleNodeImporterMappingForm extends FormBase {
       $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_content_type, $type);
 
       $allowed_date_format = NULL;
-      //dsm($get_field_list);
-      /*foreach ($get_field_list as $field) {
-        if (isset($field['widget']) && $field['widget']['type'] == 'date_text') {
-          $allowed_date_format = $field['widget']['settings']['input_format'];
-        }
-      }*/
 
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',
         '#fields' => array(
-          // 'allowed_date_format' => $allowed_date_format,
-          'filepath' => $filepath,
+        'filepath' => $filepath,
         )
 
       ];
@@ -109,7 +102,6 @@ class SimpleNodeImporterMappingForm extends FormBase {
           ];
         }
         else {
-          //print_r($field); exit;
           $field_name = $field->getName();
           $field_label = $field->getLabel();
           $field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name);

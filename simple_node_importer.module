@@ -218,7 +218,7 @@ function snpentityAjaxBreifCallback ($form, FormStateInterface $form_state):Ajax
  * Implements hook_form_alter().
  */
 function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state, $form_id) {
-
+//dsm($form['field_multivalued_text']);
   if ($form_id == 'node_simple_node_form') {
 
     // Set the session variable to false.
@@ -336,7 +336,6 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
           if(!in_array($fieldKey, $excludeArr)){
             $fieldWidget = $form[$fieldKey]['widget'];
             $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
-
             if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
               foreach($fieldSetVal['bugField'] as $err){
                 $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
@@ -376,9 +375,11 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
               else{
                 $form['account'][$fieldKey] = $fieldSetVal;
               }    
-            }            
+            }
+            else if($fieldKey == 'status'){
+              $form[$fieldKey]['widget']['value']['#default_value'] = ($fieldVal == 1 || $fieldVal == TRUE) ? TRUE : FALSE;
+            }
           }
-
         }
       }
       $form['refkey'] = [

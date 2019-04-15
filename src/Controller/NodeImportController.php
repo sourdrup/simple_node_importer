@@ -51,7 +51,6 @@ class NodeImportController extends ControllerBase {
     $user = "";
     $entity_type = 'node';
     $userAutoCreate = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_user_autocreate');
-    
     foreach ($records as $record) {
 
       $batch_result['result'] = '';
@@ -98,8 +97,7 @@ class NodeImportController extends ControllerBase {
      
       if(empty($batch_result['result'])){
         $batch_result = \Drupal::service('snp.get_services')->checkFieldWidget($field_names, $record, $node_data, $entity_type);
-      }      
-
+      } 
       if (!empty($batch_result['result'])) {
         if (!isset($context['results']['failed'])) {
           $context['results']['failed'] = 0;
@@ -110,6 +108,7 @@ class NodeImportController extends ControllerBase {
         $context['results']['data'][] = serialize($batch_result['result']);
       }
       else {
+        //print_r($batch_result); exit;
         $node = Node::create($batch_result);
         $node->save();
         if ($node->id()) {
@@ -125,7 +124,7 @@ class NodeImportController extends ControllerBase {
           $context['results']['data'] = $batch_result['result'];
         }
       }    
-    }    
+    } 
   }
 
   /**

@@ -117,7 +117,6 @@ public function submitForm(array &$form, FormStateInterface $form_state) {
 	  $record['type'] = 'user';
 	  $records[] = $record;
 	}
-
 	// Preapring batch parmeters to be execute.
 	$batch = [
 	  'title' => t('Importing User'),
