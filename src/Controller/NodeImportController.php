@@ -2,6 +2,7 @@
 
 namespace Drupal\simple_node_importer\Controller;
 
+use Drupal\simple_node_importer\Services\GetServices;
 use Drupal\node\NodeInterface;
 use Drupal\user\Entity\User;
 use Drupal\Core\Database\Database;
@@ -141,20 +142,20 @@ class NodeImportController extends ControllerBase {
       $failed_count = !empty($results['failed']) ? $results['failed'] : NULL;
 
       if ($created_count && !$failed_count) {
-        $import_status = $this->t("Nodes successfully created: %created_count", ['%created_count' => $created_count]);
+        $import_status = t("Nodes successfully created: %created_count", ['%created_count' => $created_count]);
       }
       elseif (!$created_count && $failed_count) {
-        $import_status = $this->t('Nodes import failed: %failed_count .To view failed records, please visit', ['%failed_count' => $failed_count]) . $link;
+        $import_status = t('Nodes import failed: %failed_count .To view failed records, please visit', ['%failed_count' => $failed_count]) . $link;
       }
       else {
-        $import_status = $this->t('Nodes successfully created: @created_count.<br/>Nodes import failed: @failed_count.<br/>To view failed records, please visit:', ['@created_count' => $created_count, '@failed_count' => $failed_count]) . $link;
+        $import_status = t('Nodes successfully created: @created_count.<br/>Nodes import failed: @failed_count.<br/>To view failed records, please visit:', ['@created_count' => $created_count, '@failed_count' => $failed_count]) . $link;
       }
       if (isset($results['failed']) && !empty($results['failed'])) {
         // Add Failed nodes to Resolution Table.
         NodeImportController::addFailedRecordsInRc($results);
       }
 
-      $statusMessage = $this->t("Node import completed! Import status:<br/> @import_status", ['@import_status' => $import_status]);
+      $statusMessage = t("Node import completed! Import status:<br/> @import_status", ['@import_status' => $import_status]);
       drupal_set_message($statusMessage);
     }
     else {
