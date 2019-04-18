@@ -2,19 +2,3 @@ simple_node_importer.config_form:
   route_name: simple_node_importer.config_form
   title: 'Simple Node Settings'
   parent: system.admin_config_development
-# simple_node_importer.mapping_form:
-#   route_name: simple_node_importer.mapping_form
-# simple_node_importer.create_mapping_fields:
-#   route_name: simple_node_importer.create_mapping_fields
-#   title: 'Mappings Import'
-# simple_node_importer.delete_node:
-#   route_name: simple_node_importer.delete_node
-#   title: 'Confirm Delete'
-# simple_node_importer.node_resolution_center:
-#   route_name: simple_node_importer.node_resolution_center
-#   title: 'Resolution Center'
-# simple_node_importer.node_resolution_center_0:
-#   route_name: simple_node_importer.node_resolution_center
-#   title: 'Resolution Center'
-# simple_node_importer.resolution_center_download_csv:
-#   route_name: simple_node_importer.resolution_center_download_csv

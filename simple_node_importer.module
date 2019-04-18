@@ -1,19 +1,21 @@
 <?php
 
+/**
+ * @file
+ * Simple node importer module file.
+ */
+
+use Drupal\Core\Render\Element;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Database\Database;
+use Drupal\simple_node_importer\Services\GetServices;
+use Drupal\simple_node_importer\Controller\NodeImportController;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Url;
-use Drupal\Core\Link;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\field\Entity\FieldStorageConfig;
-
-
-/**
- * @file
- * Render Simple node importing.
- */
 
 /**
  * Implements hook_help().
@@ -23,286 +25,204 @@ use Drupal\field\Entity\FieldStorageConfig;
 function simple_node_importer_help($path, $arg) {
 
   $base_url = \Drupal::request()->getSchemeAndHttpHost();
-  $type = 'module';
-  $module = 'simple_node_importer';
-  $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/thumbnail.png';
+  $drupalOrgPath = Url::fromUri('https://www.drupal.org/sandbox/sourdrup/2828039');
+  $modulePageUriLink = $base_url . '/admin/modules';
   $output = '';
+
   switch ($path) {
-    case 'admin/help#simple_node_importer':
-    // code...
-    $output .= '<h3>' . t('About') . '</h3>';
-    $output .= '<p>' . t('Simple Entity Importer is a simple module which imports entities(node/users/taxonomy) using CSV files. It provides a mapping UI to map CSV columns to it\'s corresponding entity field. For more information, see the online handbook entry for <a href="@simplenodeimporter">Simple Node Importer module</a>.', array('@simplenodeimporter' => \Drupal\Core\Url::fromUri('https://www.drupal.org/sandbox/sourdrup/2828039'))) . '</p>';
-    $output .= '<h3>' . t('How to Use') . '</h3>';
-    $output .= '<dl>';
-    $output .= '<dt><strong>' . t('Enabling module') . '</strong></dt>';
-    $output .= '<dd>' . t('This module get install in the same manner as other module does. You need to download it and save it into "sites/all/modules" directory and enable it from the "admin/modules" page.') . '</dd>';
-    $output .= '<dt><strong>' . t('Start working with Simple Node Importer') . '</strong></dt>';
-//       // @FIXME
-//   url() expects a route name or an external URI.
-//   $output .= '<dd>' . t('After module gets enabled, admin has to visit either <a href="@admin-sni-settings"><em>Simple Node Importer</em></a> settings page or <a href="@add-simple-node-importer"><em>Add Simple Node Importer</em></a> page to select the content types which are available for content importing from the list of Content types available in the Drupal site. On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Content type settings"</em></strong>, admin can select content types, admin want to allow for import.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'), '@add-simple-node-importer' => url('node/add/simple-node'))) . '</dd>';
-
-//       @FIXME
-//   url() expects a route name or an external URI.
-//   $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Taxonomy term settings"</em></strong>, admin can uncheck the checkbox to disallow adding new taxonomy terms to the vocabulary, default it is checked to allow.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
-
-//       @FIXME
-//     url() expects a route name or an external URI.
-//     $output .= '<dd>' . t('On <a href="@admin-sni-settings"><em>module settings</em></a> page under <strong><em>"Node remove settings"</em></strong>, admin can admin can delete all the nodes of <em>"Simple Node Importer"</em> content type.', array('@admin-sni-settings' => url('admin/config/development/snodeimport'))) . '</dd>';
-
-// //     $output .= '<dt><strong>' . t('Importing with Simple Node Importer') . '</strong></dt>';
-// //     $output .= '<dd><ul><li>' . t('Visit <a href="@add-simple-node-importer">Add Simple Node Importer</a> allows user to select content type, select content type.', array('@add-simple-node-importer' => \Drupal\Core\Url::fromRoute('node.add'))) . '</li><li>' . t('As user selects content type, an information box will appear having all the details of mandatory fields and multi valued fields, which helps user to prepare CSV accordingly.') . '</li><li>' . t('On select of content type, user will be able to download sample CSV file having all the field name as column headers, it is not mandatory at all to use sample downloaded CSV, user can use custom CSV too.') . '</li><li>' . t('If user uploads custom CSV, then user need to select or map the correct column to correct field name on very next step otherwise mapping appears pre-selected.') . '</li><li>' . t('Multiple values for multi valued fileds must be in separate columns and all columns should be selected on mapping page to the respective field.') . '</li><li>' . t('Once mapping is done, user can start import, clicking on Import button.') . '</li><li>' . t('Importing started and once completed you will redirect to Status page.') . '</li></ul></dd>';
-// //       $output .= '<dt>' . t('Resolution Center') . '</dt>';
-// //       $output .= '<dd>' . t('If any records fails to import, you will get a link <a href"@resolution-center"><em>Resolution Center</em></a> on import status page, where user can view, download and delete the failed records.', array('@resolution-center' => 'nodeimporter/node/%node/download-csv')) . '</dd>';
-// //       $output .= '<dt>' . t('Demo') . '</dt>';
-// //       $output .= '<dd>' . t('Still need demo?, you can visit: <br/><br/> <a href="@demo" target="_blank"><img src="@thumbnail" alt="demo" width="15%" ></a>', array('@demo' => 'https://youtu.be/331_aDapzrM', '@thumbnail' => $filepath)) . '</dd>';
-// //       $output .= '<dt>' . t('User permissions') . '</dt>';
-// //       $output .= '<dd>' . t('Visit <a href="@permissions">permissions page</a>.', array('@permissions' => \Drupal\Core\Url::fromRoute('user.admin_permissions'))) . '</dd>';
-// //       $output .= '</dl>';
-// //       break;
-
-// //     default:
-// //       // code...
-// //       break;
+    case 'help.page.simple_node_importer':
+      // code...
+      $output .= '<h3>' . t('ABOUT') . '</h3>';
+      $output .= t('<p>Simple Node Importer is a module which allows end users to import entities(node, users, taxonomy terms) using CSV files. It provides a Flexible Mapping UI to map CSV columns to it\'s corresponding entity field. For more information, see the online handbook entry for <a href="@simplenodeimporter">Simple Node Importer</a> module.</p>', ['@simplenodeimporter' => $drupalOrgPath->getUri()]);
+      $output .= '<h3>' . t('USES') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><strong>' . t('Enabling module') . '</strong></dt>';
+      $output .= t('<dd>This module get install in the same manner as other module does. You need to download it and save it into "/modules" directory and enable it from the <a href="@modulePageUriLink">Module</a> Page</dd>', ['@modulePageUriLink' => $modulePageUriLink]);
+      $output .= '<dt><strong>' . t('Working with Simple Node Importer') . '</strong></dt>';
+      $output .= '<dd>' . t('Working with Simple Node Imprter is very easy and it will guide yu on every step.') . '</dd>';
+      $output .= '<dt><strong>' . t('Resolution Center') . '</strong></dt>';
+      $output .= '<dd>' . t('In Resolution Center, end user will be able to resolve and fix the bugs right away.') . '</dd>';
   }
-  return $output;
-}
-
-
-/**
- * Mapping form title callback.
- */
-function simple_node_importer_mapping_title($option, $node) {
-  $ctype_name = node_type_get_label($option);
-  /*Add custom breadcrumb for the mapping page.
-  @FIXME
-  l() expects a Url object, created from a route name or external URI.
-  $breadcrumb = array(
-      l(t('Home'), NULL),
-      t('Simple Node Importer'),
-      t('Configure mapping'),
-    );
-  */
-  drupal_set_breadcrumb($breadcrumb);
-  return 'Configure mapping for content type : ' . $ctype_name;
-}
-
-/**
- * Implements hook_permission().
- */
-function simple_node_importer_permission() {
-  return array(
-    'admin access simple_node_importer' => array(
-      'title' => t('Admin access Simple Node Importer Dashboard page.'),
-    ),
-    'access admin simple_node_importer settings' => array(
-      'title' => t('Access Simple Importer settings page.'),
-    ),
-    'access simple_node_importer' => array(
-      'title' => t('Access Simple Node Import.'),
-    ),
-    'access simple_node_importer manage uploads' => array(
-      'title' => t('Access Simple Importer manage uploads page.'),
-    ),
-  );
+  return render($output);
 }
 
 /**
  * Ajax Callback function().
  */
-function snpAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxResponse  {
+function simple_node_importer_snp_ajax_breif_callback($form, FormStateInterface $form_state):AjaxResponse {
 
   $response = new AjaxResponse();
   $element = $form_state->getTriggeringElement();
-  if($element['#value'] != 'user' || $element['#value'] != 'taxonomy'){
-  $option_selected = $element['#value'];
-  $entity_type = 'node';
+  if ($element['#value'] != 'user' || $element['#value'] != 'taxonomy') {
+    $option_selected = $element['#value'];
+    $entity_type = 'node';
   }
-  else{
+  else {
     $entity_type = $element['#value'];
   }
-  $multival_field = array();
-  $fields_required = array();
+
   $output = "";
   \Drupal::logger('simple_node_importer')->notice($option_selected);
 
   if ($option_selected !== "_none") {
     $type = 'import';
-    $field_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type, $option_selected, $type);
-    if($entity_type = 'node'){
-    $output = "<div class='content-type-info'>";
-      foreach($field_array as $key => $fieldArr){
-        if($key == 'required'){
-          # code...
+    $field_array = \Drupal::service('snp.get_services')->snpGetFieldList($entity_type, $option_selected, $type);
+    if ($entity_type = 'node') {
+      $output = "<div class='content-type-info'>";
+      foreach ($field_array as $key => $fieldArr) {
+        if ($key == 'required') {
+          // code...
           $output .= "<div class='lable-required'>Required fields are:<ul>";
         }
         elseif ($key == 'multivalued') {
-          # code...
+          // code...
           $output .= "<div class='lable-multivalued'>Multivalued fields are:<ul>";
         }
 
-        foreach($fieldArr as $fkey => $field){
-          $output .= "<li>". ucwords(str_replace('_', ' ', $field)) ."</li>";
+        foreach ($fieldArr as $field) {
+          $output .= "<li>" . ucwords(str_replace('_', ' ', $field)) . "</li>";
         }
 
         $output .= "</ul></div>";
       }
-    $output .= "</div>";
+      $output .= "</div>";
     }
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
   }
-  else{
+  else {
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
   }
 
   return $response;
-  
-
-  // $response->addCommand(new HtmlCommand('#replace-breif-note-div', $content_type ));
-  // return $response;
-
-  
-  // @FIXME
-  // theme() has been renamed to _theme() and should NEVER be called directly.
-  // Calling _theme() directly can alter the expected output and potentially
-  // introduce security issues (see https://www.drupal.org/node/2195739). You
-  // should use renderable arrays instead.
-  // 
-  // 
-  // @see https://www.drupal.org/node/2195739
-  /*return _theme('content_info_note', array('fields_required' => $fields_required, 'multival_field' => $multival_field));
-  */
 }
 
 /**
  * Ajax Callback function().
  */
-function snpentityAjaxBreifCallback ($form, FormStateInterface $form_state):AjaxResponse  {
+function simple_node_importer_snpentity_ajax_breif_callback($form, FormStateInterface $form_state):AjaxResponse {
 
   $response = new AjaxResponse();
   $element = $form_state->getTriggeringElement();
   $entity_type = $element['#value'];
-  $multival_field = array();
-  $fields_required = array();
   $output = "";
 
   if ($entity_type == "user") {
     $type = 'import';
-    $userfield_array = \Drupal::service('snp.get_services')->snp_get_field_list($entity_type,'user', $type);
+    $userfield_array = \Drupal::service('snp.get_services')->snpGetFieldList($entity_type, 'user', $type);
     $output = "<div class='user-info'>";
-      foreach($userfield_array as $key => $fieldArr){
-        if($key == 'required'){
-          # code...
-          $output .= "<div class='lable-required'>Required fields are:<ul>";
-        }
-        elseif ($key == 'multivalued') {
-          # code...
-          $output .= "<div class='lable-multivalued'>Multivalued fields are:<ul>";
-        }
-
-        foreach($fieldArr as $fkey => $field){
-          $output .= "<li>". ucwords(str_replace('_', ' ', $field)) ."</li>";
-        }
-
-        $output .= "</ul></div>";
+    foreach ($userfield_array as $key => $fieldArr) {
+      if ($key == 'required') {
+        // code...
+        $output .= "<div class='lable-required'>Required fields are:<ul>";
       }
+      elseif ($key == 'multivalued') {
+        // code...
+        $output .= "<div class='lable-multivalued'>Multivalued fields are:<ul>";
+      }
+
+      foreach ($fieldArr as $field) {
+        $output .= "<li>" . ucwords(str_replace('_', ' ', $field)) . "</li>";
+      }
+
+      $output .= "</ul></div>";
+    }
     $output .= "</div>";
-    
+
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
   }
-  else{
+  else {
     $response->addCommand(new HtmlCommand('#replace-breif-note-div', $output));
   }
   return $response;
 }
+
 /**
  * Implements hook_form_alter().
  */
 function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state, $form_id) {
-//dsm($form['field_multivalued_text']);
+
   if ($form_id == 'node_simple_node_form') {
 
     // Set the session variable to false.
     $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
     $sessionVariable->set('file_upload_session', FALSE);
-    
-    $form['status']['#access'] = FALSE;   
+
+    $form['status']['#access'] = FALSE;
     $form['title']['#required'] = FALSE;
     $form['title']['#access'] = FALSE;
 
-    $form['field_select_content_type']['widget']['#ajax'] = array(
-      'callback' => 'snpAjaxBreifCallback',
+    $form['field_select_content_type']['widget']['#ajax'] = [
+      'callback' => 'simple_node_importer_snp_ajax_breif_callback',
       'wrapper' => 'replace_breif_note_div',
       'event' => 'change',
-    );
+    ];
 
-    $form['field_select_entity_type']['widget']['#ajax'] = array(
-      'callback' => 'snpentityAjaxBreifCallback',
+    $form['field_select_entity_type']['widget']['#ajax'] = [
+      'callback' => 'simple_node_importer_snpentity_ajax_breif_callback',
       'wrapper' => 'replace_breif_note_div',
       'event' => 'change',
-    );
+    ];
 
-  
     $form['field_select_content_type']['#states'] = [
       'visible' => [
-          'select[name="field_select_entity_type"]' => ['value' => 'node']
+        'select[name="field_select_entity_type"]' => ['value' => 'node'],
       ],
       'required' => [
-        'select[name="field_select_entity_type"]' => ['value' => 'node']
-    ],
+        'select[name="field_select_entity_type"]' => ['value' => 'node'],
+      ],
     ];
-    $form['replace_breif_note_div'] = array(
+    $form['replace_breif_note_div'] = [
       '#type' => 'container',
       '#markup' => '',
       '#attributes' => ['id' => 'replace-breif-note-div'],
       '#weight' => 3,
-    );
-    $form['download_template'] = array(
+    ];
+    $form['download_template'] = [
       '#type' => 'submit',
       '#value' => t('Download Sample File'),
       '#weight' => 3,
-      '#submit' => array('simple_node_importer_template_submit_handler'),
-      '#limit_validation_errors' => array(
-        array('field_select_content_type'),
-        array('field_select_entity_type'),
-      ),
-      '#states' => array(
-        'invisible' => array(
-          ':input[name="field_select_entity_type"]' => array('value' => '_none'),
-        ),
-      ),
-    );
-    $form['field_upload_csv']['#states'] = array(
-      'invisible' => array(
-        ':input[name="field_select_entity_type"]' => array('value' => '_none'),
-      ),
-    );
+      '#submit' => ['simple_node_importer_template_submit_handler'],
+      '#limit_validation_errors' => [
+        ['field_select_content_type'],
+        ['field_select_entity_type'],
+      ],
+      '#states' => [
+        'invisible' => [
+          ':input[name="field_select_entity_type"]' => ['value' => '_none'],
+        ],
+      ],
+    ];
+    $form['field_upload_csv']['#states'] = [
+      'invisible' => [
+        ':input[name="field_select_entity_type"]' => ['value' => '_none'],
+      ],
+    ];
     $form['#validate'][] = 'simple_node_importer_validate';
     $fieldSelectContentOptions = $form['field_select_entity_type']['widget']['#options'];
-    /* 
-    ** Check whether Admin set the content type to import or not.
-    ** If variable 'content_type_select' is empty.
-    ** ask to select the content type list.
-    */
+    /*
+     ** Check whether Admin set the content type to import or not.
+     ** If variable 'content_type_select' is empty.
+     ** ask to select the content type list.
+     */
     if (count($fieldSelectContentOptions) == 1) {
       $form['field_select_entity_type']['#access'] = FALSE;
       $form['field_select_content_type']['#access'] = FALSE;
       $form['field_upload_csv']['#access'] = FALSE;
-      $form['download_template']['#access'] = FALSE;         
-      $form['actions']['submit']['#access'] = FALSE;      
+      $form['download_template']['#access'] = FALSE;
+      $form['actions']['submit']['#access'] = FALSE;
 
-      $url = Url::fromRoute('simple_node_importer.config_form');
       $link = \Drupal::l(t('Admin Settings Page'), new url('simple_node_importer.config_form'));
-      $message = t('Kindly contact Admin to select the entity types and content types which are allowed to be imported, for this you can visit: '. $link);
+      $message = t('Kindly contact Admin to select the entity types and content types which are allowed to be imported, for this you can visit:@link', ["@link" => $link]);
 
       drupal_set_message($message);
     }
 
-    $form['field_upload_csv']['#upload_validators']['file_validate_extensions'] = array('csv');
+    $form['field_upload_csv']['#upload_validators']['file_validate_extensions'] = ['csv'];
 
     $form['actions']['submit']['#submit'][] = "simple_node_importer_form_submit_redirect_handler";
   }
 
-  if ($form_id == 'node_simple_node_edit_form'){
+  if ($form_id == 'node_simple_node_edit_form') {
     drupal_set_message(t('OOPs! Sorry you are not allowed to resubmit this node again. Please start with new import.'));
     $form['field_select_content_type']['#disabled'] = TRUE;
     $form['field_select_entity_type']['#disabled'] = TRUE;
@@ -315,123 +235,123 @@ function simple_node_importer_form_alter(&$form, FormStateInterface &$form_state
     $form['#submit'][] = 'simple_node_importer_config_form_submit';
   }
 
-
   $refKey = \Drupal::request()->get('refkey');
   $bundleName = \Drupal::request()->get('bundle');
-  
-  if($bundleName != 'user'){
-    $bundleFormId = 'node_'.$bundleName.'_form';
+
+  if ($bundleName != 'user') {
+    $bundleFormId = 'node_' . $bundleName . '_form';
   }
-  else{
+  else {
     $bundleFormId = 'user_register_form';
   }
   $excludeArr = ['type', 'reference', 'name', 'mail', 'roles', 'status'];
-  if($form_id == $bundleFormId && !empty($refKey)){
-      $failedRow = \Drupal\simple_node_importer\Controller\NodeImportController::getFailedRowsInRC(NULL, $refKey);
-      foreach($failedRow as $rowVal){
-        $sni_nid = $rowVal['sni_nid'];
-        unset($rowVal['sni_nid']);
-        $entity_type = \Drupal::request()->get('entity_type');
-        foreach($rowVal as $fieldKey => $fieldVal){
-          if(!in_array($fieldKey, $excludeArr)){
-            $fieldWidget = $form[$fieldKey]['widget'];
-            $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
-            if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
-              foreach($fieldSetVal['bugField'] as $err){
-                $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
-                \Drupal::messenger()->addError($msg);
-              }            
-              $form[$fieldKey] = $fieldSetVal['fieldWidget'];
+  if ($form_id == $bundleFormId && !empty($refKey)) {
+    $failedRow = NodeImportController::getFailedRowsInRc(NULL, $refKey);
+    foreach ($failedRow as $rowVal) {
+      $sni_nid = $rowVal['sni_nid'];
+      unset($rowVal['sni_nid']);
+      $entity_type = \Drupal::request()->get('entity_type');
+      foreach ($rowVal as $fieldKey => $fieldVal) {
+        if (!in_array($fieldKey, $excludeArr)) {
+          $fieldWidget = $form[$fieldKey]['widget'];
+          $fieldSetVal = GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
+          if (isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])) {
+            foreach ($fieldSetVal['bugField'] as $err) {
+              $msg = t("Please check the value or format of the field: @bugField", ['@bugField' => $err]);
+              \Drupal::messenger()->addError($msg);
             }
-            else{
-              $form[$fieldKey] = $fieldSetVal;
-            }         
+            $form[$fieldKey] = $fieldSetVal['fieldWidget'];
           }
-          else{
-            if($fieldKey == 'name' && !empty($fieldVal)){
-              $user = user_load_by_name($fieldVal);
-              if($user){
-                $msg = t("User already exists with username: @bugField", array('@bugField' => $fieldKey));
+          else {
+            $form[$fieldKey] = $fieldSetVal;
+          }
+        }
+        else {
+          if ($fieldKey == 'name' && !empty($fieldVal)) {
+            $user = user_load_by_name($fieldVal);
+            if ($user) {
+              $msg = t("User already exists with username: @bugField", ['@bugField' => $fieldKey]);
+              \Drupal::messenger()->addError($msg);
+            }
+          }
+          elseif ($fieldKey == 'mail' && !empty($fieldVal)) {
+            $user = user_load_by_mail($fieldVal);
+            if ($user) {
+              $msg = t("User already exists with email: @bugField", ['@bugField' => $fieldKey]);
+              \Drupal::messenger()->addError($msg);
+            }
+          }
+          if (!in_array($fieldKey, ['type', 'status', 'reference'])) {
+            $fieldWidget = $form['account'][$fieldKey];
+            $fieldSetVal = GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
+            if (isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])) {
+              foreach ($fieldSetVal['bugField'] as $err) {
+                $msg = t("Please check the value or format of the field: @bugField", ['@bugField' => $err]);
                 \Drupal::messenger()->addError($msg);
               }
+              $form['account'][$fieldKey] = $fieldSetVal['fieldWidget'];
             }
-            else if($fieldKey == 'mail' && !empty($fieldVal)){
-              $user = user_load_by_mail($fieldVal);
-              if($user){
-                $msg = t("User already exists with email: @bugField", array('@bugField' => $fieldKey));
-                \Drupal::messenger()->addError($msg);
-              }
+            else {
+              $form['account'][$fieldKey] = $fieldSetVal;
             }
-            if(!in_array($fieldKey, ['type', 'status', 'reference'])){
-              $fieldWidget = $form['account'][$fieldKey];
-              $fieldSetVal = \Drupal\simple_node_importer\Services\GetServices::generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundleName);
-              if(isset($fieldSetVal['bugField']) && !empty($fieldSetVal['bugField'])){
-                foreach($fieldSetVal['bugField'] as $err){
-                  $msg = t("Please check the value or format of the field: @bugField", array('@bugField' => $err));
-                  \Drupal::messenger()->addError($msg);
-                }            
-                $form['account'][$fieldKey] = $fieldSetVal['fieldWidget'];
-              }
-              else{
-                $form['account'][$fieldKey] = $fieldSetVal;
-              }    
-            }
-            else if($fieldKey == 'status'){
-              $form[$fieldKey]['widget']['value']['#default_value'] = ($fieldVal == 1 || $fieldVal == TRUE) ? TRUE : FALSE;
-            }
+          }
+          elseif ($fieldKey == 'status') {
+            $form[$fieldKey]['widget']['value']['#default_value'] = ($fieldVal == 1 || $fieldVal == TRUE) ? TRUE : FALSE;
           }
         }
       }
-      $form['refkey'] = [
-        '#type' => 'hidden',
-        '#value' => $refKey
-      ];
-      $form['sni_nid'] = [
-        '#type' => 'hidden',
-        '#value' => $sni_nid
-      ];
+    }
+    $form['refkey'] = [
+      '#type' => 'hidden',
+      '#value' => $refKey,
+    ];
+    $form['sni_nid'] = [
+      '#type' => 'hidden',
+      '#value' => $sni_nid,
+    ];
 
-      $form['actions']['submit']['#submit'][] = 'update_rc_table_form_submit';
+    $form['actions']['submit']['#submit'][] = 'simple_node_importer_update_rc_table_form_submit';
   }
 }
 
-
-function update_rc_table_form_submit($form, FormStateInterface &$form_state){
+/**
+ * {@inheritdoc}
+ */
+function simple_node_importer_update_rc_table_form_submit($form, FormStateInterface &$form_state) {
   $refKey = $form_state->getValue('refkey');
   $sni_nid = $form_state->getValue('sni_nid');
-  
-  if($refKey){
-    $connection = \Drupal\Core\Database\Database::getConnection();
-    $num_deleted = $connection->delete('node_resolution')
-    ->condition('reference', $refKey)
-    ->execute();
 
-  
-    if($num_deleted){
-      if($sni_nid){
-        $connection = \Drupal\Core\Database\Database::getConnection();
+  if ($refKey) {
+    $connection = Database::getConnection();
+    $num_deleted = $connection->delete('node_resolution')
+      ->condition('reference', $refKey)
+      ->execute();
+
+    if ($num_deleted) {
+      if ($sni_nid) {
+        $connection = Database::getConnection();
         $connection->query("SET SQL_MODE=''");
         $query_record = $connection->select('node_resolution', 'nr');
         $query_record->fields('nr', ['status']);
         $query_record->condition('nr.sni_nid', $sni_nid);
-        $query_record->range(0,1);
+        $query_record->range(0, 1);
         $result = $query_record->execute()->fetchAll();
-        foreach($result as $row){
+        foreach ($result as $row) {
           $status = unserialize($row->status);
         }
 
-        $import_status = array(
+        $import_status = [
           'success' => $status['success'] + 1,
           'fail' => $status['fail'] - 1,
-        );
+        ];
 
-        // update status
-        $update_query = $connection->update('node_resolution')
-        ->fields([
-          'status' => serialize($import_status)
-        ])
-        ->condition('sni_nid', $sni_nid)
-        ->execute();
+        // Update status.
+        $connection->update('node_resolution')
+          ->fields([
+            'status' => serialize($import_status),
+          ])
+          ->condition('sni_nid', $sni_nid)
+          ->execute();
       }
 
       $msg = t("Resolution Center Updated");
@@ -445,12 +365,12 @@ function update_rc_table_form_submit($form, FormStateInterface &$form_state){
 /**
  * Implements hook_node_presave().
  */
-function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
+function simple_node_importer_node_presave(NodeInterface $node) {
   if ($node->getType() == "simple_node") {
-    if($node->field_select_entity_type[0]->value == 'node'){
-    $selected_content_type = $node->field_select_content_type[0]->value;
+    if ($node->field_select_entity_type[0]->value == 'node') {
+      $selected_content_type = $node->field_select_content_type[0]->value;
     }
-    else{
+    else {
       $selected_content_type = $node->field_select_entity_type[0]->value;
     }
     $created_date = date('mdY-H:i', $node->getCreatedTime());
@@ -458,33 +378,35 @@ function simple_node_importer_node_presave(\Drupal\node\NodeInterface $node) {
   }
 }
 
-function simple_node_importer_validate(&$form, FormStateInterface &$form_state){
+/**
+ * {@inheritdoc}
+ */
+function simple_node_importer_validate(&$form, FormStateInterface &$form_state) {
   $entity_selected = $form_state->getValue('field_select_entity_type')[0]['value'];
-  // $tempstore = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
-  // $tempstore->set('entity_type_selected', $entity_selected);
-  if($entity_selected == 'node'){
-  $content_type_selected =  $form_state->getValue('field_select_content_type')[0]['value'];
-  // $tempstore->set('content_type_selected', $content_type_selected);
-    if(empty($content_type_selected))
-    {
-    $form_state->setErrorByName('field_select_content_type', t('select content type is required feild'));
+
+  if ($entity_selected == 'node') {
+    $content_type_selected = $form_state->getValue('field_select_content_type')[0]['value'];
+    // $tempstore->set('content_type_selected', $content_type_selected);.
+    if (empty($content_type_selected)) {
+      $form_state->setErrorByName('field_select_content_type', t('select content type is required feild'));
     }
   }
 }
+
 /**
  * Submit handler for simple_node_importer_template_submit_handler.
  */
 function simple_node_importer_template_submit_handler(&$form, FormStateInterface &$form_state) {
   $selected_entity_type = $form_state->getValue('field_select_entity_type')[0]['value'];
-  if($selected_entity_type == 'node'){
+  if ($selected_entity_type == 'node') {
     $selected_content_type = $form_state->getValue('field_select_content_type')[0]['value'];
   }
-  else{
+  else {
     $selected_content_type = $selected_entity_type;
   }
 
-  if($selected_content_type) {
-    \Drupal::service('snp.get_services')->snp_select_create_csv($selected_entity_type, $selected_content_type);
+  if ($selected_content_type) {
+    \Drupal::service('snp.get_services')->snpSelectCreateCsv($selected_entity_type, $selected_content_type);
   }
 }
 
@@ -496,18 +418,18 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
 
   // Set the session variable to false.
   $sessionVariable = \Drupal::service('user.private_tempstore')->get('simple_node_importer');
-  $sessionVariable->set('file_upload_session', TRUE); 
- if($form_state->getValue('field_select_entity_type')[0]['value'] == 'user'){
-    $parameters = array('option' => 'user','node' => $newNid);
+  $sessionVariable->set('file_upload_session', TRUE);
+  if ($form_state->getValue('field_select_entity_type')[0]['value'] == 'user') {
+    $parameters = ['option' => 'user', 'node' => $newNid];
     $form_state->setRedirect('simple_node_importer.user_mapping_form', $parameters);
   }
-  elseif($form_state->getValue('field_select_entity_type')[0]['value'] == 'node'){
+  elseif ($form_state->getValue('field_select_entity_type')[0]['value'] == 'node') {
     $selected_content = $form_state->getValue('field_select_content_type')[0]['value'];
-    $parameters = array('option' =>$selected_content,'node' => $newNid);
+    $parameters = ['option' => $selected_content, 'node' => $newNid];
     $form_state->setRedirect('simple_node_importer.node_mapping_form', $parameters);
   }
-  else{
-    \Drupal::service('snp.get_services')->simple_node_importer_createTaxonomy($newNid);
+  else {
+    \Drupal::service('snp.get_services')->simpleNodeImporterCreateTaxonomy($newNid);
   }
 }
 
@@ -515,20 +437,20 @@ function simple_node_importer_form_submit_redirect_handler($form, &$form_state) 
  * Implements hook_theme().
  */
 function simple_node_importer_theme() {
-  return array(
-    'simple_node_import_table' => array(
+  return [
+    'simple_node_import_table' => [
       'render element' => 'form',
-      'function' => 'theme_simple_node_import_table',
-    ),
-    'content_info_note' => array(
+      'function' => 'simple_node_importer_theme_simple_node_import_table',
+    ],
+    'content_info_note' => [
       'template' => 'templates/content-info-note',
-      'variables' => array('fields' => array()),
-    ),
-    'mapping_help_text_info' => array(
+      'variables' => ['fields' => []],
+    ],
+    'mapping_help_text_info' => [
       'template' => 'mapping-help-text-info',
-      'variables' => array('fields' => array()),
-    ),
-  );
+      'variables' => ['fields' => []],
+    ],
+  ];
 }
 
 /**
@@ -543,49 +465,48 @@ function simple_node_importer_preprocess_content_info_note(&$vars) {
  * Implements preprocess().
  */
 function simple_node_importer_preprocess_mapping_help_text_info(&$vars) {
-  // $vars['allowed_date_format'] = $vars['fields']['allowed_date_format'];
   $vars['filepath'] = $vars['fields']['filepath'];
 }
 
 /**
  * Theme function to display form data.
  */
-function theme_simple_node_import_table($form) {
+function simple_node_importer_theme_simple_node_import_table($form) {
   // Table header information.
-  $tableheader = array(
-    array('data' => t('Content type Field(s)')),
-    array('data' => t('CSV Column(s)')),
-  );
+  $tableheader = [
+    ['data' => t('Content type Field(s)')],
+    ['data' => t('CSV Column(s)')],
+  ];
   // A variable to hold the row information for each table row.
-  $rows = array();
-  foreach (\Drupal\Core\Render\Element::children($form['form']) as $element_key) {
+  $rows = [];
+  foreach (Element::children($form['form']) as $element_key) {
     $title = '';
     // Hide field labels.
     $form['form'][$element_key]['#title_display'] = 'invisible';
     if (isset($form['form'][$element_key]['#title'])) {
       $title = ($form['form'][$element_key]['#required']) ? $form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
     }
-    $rows[] = array(
-      'data' => array(
-        array(
+    $rows[] = [
+      'data' => [
+        [
           'data' => $title,
           'class' => 'field-title',
-        ),
-        array(
+        ],
+        [
           'data' => render($form['form'][$element_key]),
           'class' => 'field-value',
-        ),
-      ),
-    );
+        ],
+      ],
+    ];
   }
- 
-  $table = array(
+
+  $table = [
     '#type' => 'table',
     '#header' => $tableheader,
     '#rows' => $rows,
-  );
-  
-  return $output = drupal_render($table);
+  ];
+
+  return drupal_render($table);
 }
 
 /**
@@ -603,14 +524,14 @@ function theme_simple_node_import_table($form) {
  *
  * @see options_allowed_values()
  */
-function getAllowedContentTypeList(FieldStorageConfig $definition, ContentEntityInterface $entity = NULL, $cacheable) {
+function simple_node_importer_get_allowed_content_type_list(FieldStorageConfig $definition, ContentEntityInterface $entity = NULL, $cacheable) {
 
   // Declare a variable for selected content type.
-  $content_type_selected = array();
+  $content_type_selected = [];
 
   // Add a custom alignment option for Article nodes.
   if ($entity->bundle() == 'simple_node') {
-    // Get the list of all allowed content types
+    // Get the list of all allowed content types.
     $content_type_select = \Drupal::config('simple_node_importer.settings')->get('content_type_select');
 
     $content_type_selected['_none'] = t("- Select a value -");
@@ -626,14 +547,17 @@ function getAllowedContentTypeList(FieldStorageConfig $definition, ContentEntity
   return $content_type_selected;
 }
 
-function getAllowedEntityTypeList(FieldStorageConfig $definition, ContentEntityInterface $entity = NULL, $cacheable) {
+/**
+ * {@inheritdoc}
+ */
+function simple_node_importer_get_allowed_entity_type_list(FieldStorageConfig $definition, ContentEntityInterface $entity = NULL, $cacheable) {
 
   // Declare a variable for selected content type.
-  $entity_type_selected = array();
+  $entity_type_selected = [];
 
   // Add a custom alignment option for Article nodes.
   if ($entity->bundle() == 'simple_node') {
-    // Get the list of all allowed content types
+    // Get the list of all allowed content types.
     $entity_type_select = \Drupal::config('simple_node_importer.settings')->get('entity_type_select');
     $entity_type_selected['_none'] = t("- Select a value -");
 

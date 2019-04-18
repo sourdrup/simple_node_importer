@@ -9,7 +9,6 @@ simple_node_importer.config_form:
 simple_node_importer.node_mapping_form:
   path: '/nodeimport/{option}/{node}/mapping'
   defaults:
-    # _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
     _form: \Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm
   options:
     parameters:
@@ -21,7 +20,6 @@ simple_node_importer.node_mapping_form:
 simple_node_importer.user_mapping_form:
   path: '/nodeimport/{option}/{node}/usermapping'
   defaults:
-    # _title_callback: '\Drupal\simple_node_importer\Form\SimpleNodeImporterMappingForm::simple_node_importer_mapping_title'
     _form: \Drupal\simple_node_importer\Form\SimpleUserImporterMappingForm
   options:
     parameters:
@@ -45,7 +43,7 @@ simple_node_importer.import_user:
   path: '/simplenode/{option}/{node}/delete'
   defaults:
     _title: 'User Import'
-    _controller: '\Drupal\simple_node_importer\Controller\UserImportController::UserImport'
+    _controller: '\Drupal\simple_node_importer\Controller\UserImportController::userImport'
   requirements:
     _permission: 'admin access simple_node_importer'
 
@@ -80,7 +78,7 @@ simple_node_importer.node_resolution_center:
 simple_node_importer.resolution_center_operations:
   path: '/nodeimporter/resolution-center/{node}/{op}'
   defaults:
-    _title_callback: '\Drupal\simple_node_importer\Controller\NodeImportController::resolution_center_title'
+    _title_callback: '\Drupal\simple_node_importer\Controller\NodeImportController::resolutionCenterTitleCallback'
     _controller: '\Drupal\simple_node_importer\Controller\NodeImportController::resolutionCenterOperations'
   options:
     parameters:

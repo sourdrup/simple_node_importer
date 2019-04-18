@@ -1,34 +1,45 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\simple_node_importer\Form\SimpleUserImporterMappingForm.
- */
-
 namespace Drupal\simple_node_importer\Form;
 
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Url;
+use Drupal\file\Entity\File;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
-use Drupal\Core\Render\Element;
 use Drupal\user\PrivateTempStoreFactory;
+use Drupal\file\FileUsage\FileUsageInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
-
+/**
+ * Flexible Mapping Form for the Simple Node Importer.
+ */
 class SimpleUserImporterMappingForm extends FormBase {
-   protected $tempStore;
-   protected $services;
+  protected $tempStore;
+  protected $services;
+  protected $fileUsage;
+  protected $logger;
 
   /**
    * Constructs a Drupal\Component\Plugin\PluginBase object.
    *
-   * @param array $configuration
-   *   A configuration array containing information about the plugin instance.
+   * @param Drupal\simple_node_importer\Services\GetServices $getServices
+   *   Constructs a Drupal\simple_node_importer\Services object.
+   * @param Drupal\Core\TempStore\PrivateTempStoreFactory $sessionVariable
+   *   Constructs a Drupal\Core\TempStore\PrivateTempStoreFactory object.
+   * @param Drupal\file\FileUsage\FileUsageInterface $file_usage
+   *   Constructs a Drupal\file\FileUsage\FileUsageInterface object.
+   * @param Drupal\Core\Logger\LoggerChannelFactoryInterface $logger
+   *   Constructs a Drupal\Core\Logger\LoggerChannelFactoryInterface object.
    */
-  public function __construct($GetServices,PrivateTempStoreFactory $temp_store_factory) {
-    $this->services = $GetServices;
-    $this->tempStore = $temp_store_factory->get('simple_node_importer');
+  public function __construct(GetServices $getServices, PrivateTempStoreFactory $sessionVariable, FileUsageInterface $file_usage, LoggerChannelFactoryInterface $logger) {
+    $this->services = $getServices;
+    $this->tempStore = $sessionVariable->get('simple_node_importer');
+    $this->fileUsage = $file_usage;
+    $this->logger = $logger;
   }
 
   /**
@@ -38,19 +49,22 @@ class SimpleUserImporterMappingForm extends FormBase {
     return 'simple_node_importer_mapping_form';
   }
 
-  public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state,$option = NULL, \Drupal\node\NodeInterface $node = NULL) {
+  /**
+   * Build Flexible Mapping UI form.
+   */
+  public function buildForm(array $form, FormStateInterface $form_state, $option = NULL, NodeInterface $node = NULL) {
     global $base_url;
     $type = 'module';
     $module = 'simple_node_importer';
     $filepath = $base_url . '/' . drupal_get_path($type, $module) . '/css/files/mapping.png';
     $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
-    $file = \Drupal\file\Entity\File::load($fid);
+    $file = File::load($fid);
     $uri = $file->getFileUri();
-    $url = \Drupal\Core\Url::fromUri(file_create_url($uri))->toString();
+
     if (empty($node)) {
       $type = 'Simple Node Importer';
       $message = 'Node object is not valid.';
-      \Drupal::logger($type)->error($message, []);
+      $this->logger->get($type)->error($message, []);
     }
     elseif ($this->tempStore->get('file_upload_session') == FALSE) {
       $response = new RedirectResponse('/node/add/simple-node');
@@ -58,81 +72,83 @@ class SimpleUserImporterMappingForm extends FormBase {
     }
     else {
       // Options to be listed in File Column List.
-      $headers = $this->services->simple_node_importer_getallcolumnheaders($uri);
+      $headers = $this->services->simpleNodeImporterGetAllColumnHeaders($uri);
       $entity_type = $option;
       $selected_option = $option;
-      $form_mode = 'default';
       $type = 'mapping';
-      $get_field_list = $this->services->snp_get_field_list($entity_type,$selected_option, $type);
-      $parameters = array('option' => $option,'node' =>$node->id());
+      $get_field_list = $this->services->snpGetFieldList($entity_type, $selected_option, $type);
+      $parameters = ['option' => $option, 'node' => $node->id()];
       $this->tempStore->set('parameters', $parameters);
       // Add HelpText to the mapping form.
       $form['helptext'] = [
         '#theme' => 'mapping_help_text_info',
-        '#fields' => array(
-        'filepath' => $filepath,
-        )
-    
+        '#fields' => [
+          'filepath' => $filepath,
+        ],
+
       ];
       // Add theme table to the mapping form.
       $form['mapping_form']['#theme'] = 'simple_node_import_table';
       // Mapping form.
-      $defaultFieldArr = ['name', 'mail','status','roles'];
+      $defaultFieldArr = ['name', 'mail', 'status', 'roles'];
       foreach ($get_field_list as $key => $field) {
-          if ($entity_type == 'user'){
-            $field_name = $field->getName();
-            if( in_array($key,$defaultFieldArr)){
-                  $field_label = $field->getLabel()->render();
-                  $fieldcardinality = $field->getCardinality();
-               }
-            else{
-                $field_info = \Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $field_name);
-                 $fieldcardinality =$field_info->get('cardinality');  
-                $field_label = $field->getLabel();
-             }
-       }
-        if ($fieldcardinality == -1 || $fieldcardinality > 1) {
-            $form['mapping_form'][$key] = [
-              '#type' => 'select',
-              '#title' => $field_label,
-              '#options' => $headers,
-              '#multiple' => TRUE,
-              '#required' => ($field->isRequired()) ? TRUE : FALSE,
-              '#empty_option' => t('Select'),
-              '#empty_value' => '',
-            ];
+        if ($entity_type == 'user') {
+          $field_name = $field->getName();
+          if (in_array($key, $defaultFieldArr)) {
+            $field_label = $field->getLabel()->render();
+            $fieldcardinality = $field->getCardinality();
           }
           else {
-            $form['mapping_form'][$key] = [
-              '#type' => 'select',
-              '#title' => $field_label,
-              '#options' => $headers,
-              '#required' => ($field->isRequired()) ? TRUE : FALSE,
-              '#empty_option' => t('Select'),
-              '#empty_value' => '',
-            ];
+            $field_info = FieldStorageConfig::loadByName($entity_type, $field_name);
+            $fieldcardinality = $field_info->get('cardinality');
+            $field_label = $field->getLabel();
           }
+        }
+        if ($fieldcardinality == -1 || $fieldcardinality > 1) {
+          $form['mapping_form'][$key] = [
+            '#type' => 'select',
+            '#title' => $field_label,
+            '#options' => $headers,
+            '#multiple' => TRUE,
+            '#required' => ($field->isRequired()) ? TRUE : FALSE,
+            '#empty_option' => $this->t('Select'),
+            '#empty_value' => '',
+          ];
+        }
+        else {
+          $form['mapping_form'][$key] = [
+            '#type' => 'select',
+            '#title' => $field_label,
+            '#options' => $headers,
+            '#required' => ($field->isRequired()) ? TRUE : FALSE,
+            '#empty_option' => $this->t('Select'),
+            '#empty_value' => '',
+          ];
+        }
       }
 
       // Get the preselected values for form fields.
-      $form = $this->services->simple_node_importer_getpreselectedvalues($form, $headers);
-          
+      $form = $this->services->simpleNodeImporterGetPreSelectedValues($form, $headers);
+
       $form['import'] = [
         '#type' => 'submit',
-        '#value' => t('Import'),
+        '#value' => $this->t('Import'),
         '#weight' => 49,
       ];
       $form['cancel'] = [
         '#type' => 'submit',
-        '#value' => t('cancel'),
+        '#value' => $this->t('cancel'),
         '#weight' => 3,
-        '#submit' => array('::snp_redirect_to_cancel')
+        '#submit' => ['::snpRedirectToCancel'],
       ];
       return $form;
     }
   }
 
-  public function validateForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
     $valarray = [];
     $duplicates = [];
     $count_array = [];
@@ -156,16 +172,16 @@ class SimpleUserImporterMappingForm extends FormBase {
     foreach ($duplicates as $duplicate_val) {
       foreach ($form_state->getValues() as $key => $val) {
         if ($val == $duplicate_val) {
-          $form_state->setErrorByName($key, t('Duplicate Mapping detected for %duplval', [
-            '%duplval' => $duplicate_val
-            ]));
+          $form_state->setErrorByName($key, $this->t('Duplicate Mapping detected for %duplval', [
+            '%duplval' => $duplicate_val,
+          ]));
         }
         elseif (is_array($val)) {
           foreach ($val as $v) {
             if ($v == $duplicate_val) {
-              $form_state->setErrorByName($key, t('Duplicate Mapping detected for %duplval', [
-                '%duplval' => $duplicate_val
-                ]));
+              $form_state->setErrorByName($key, $this->t('Duplicate Mapping detected for %duplval', [
+                '%duplval' => $duplicate_val,
+              ]));
             }
           }
         }
@@ -177,11 +193,14 @@ class SimpleUserImporterMappingForm extends FormBase {
     }
   }
 
-  public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
     $haystack = 'snp_';
     foreach ($form_state->getValues() as $key => $val) {
-      if (strpos($key, $haystack) === FALSE){
-        $mapvalues[$key] = $val;        
+      if (strpos($key, $haystack) === FALSE) {
+        $mapvalues[$key] = $val;
       }
     }
     $this->tempStore->set('mapvalues', $mapvalues);
@@ -194,17 +213,21 @@ class SimpleUserImporterMappingForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-   public static function create(ContainerInterface $container) {
-     return new static(
-       $container->get('snp.get_services'),
-       $container->get('user.private_tempstore')
-     );
-   }
+  public static function create(ContainerInterface $container) {
+    return new static(
+     $container->get('snp.get_services'),
+     $container->get('user.private_tempstore'),
+     $container->get('file.usage'),
+     $container->get('logger.factory')
+    );
+  }
 
-   public function snp_redirect_to_cancel(array &$form, FormStateInterface $form_state)
-   {
-     $parameters = $this->tempStore->get('parameters');     
-     $form_state->setRedirect('simple_node_importer.delete_node', $parameters);
-   }
+  /**
+   * {@inheritdoc}
+   */
+  public function snpRedirectToCancel(array &$form, FormStateInterface $form_state) {
+    $parameters = $this->tempStore->get('parameters');
+    $form_state->setRedirect('simple_node_importer.delete_node', $parameters);
+  }
+
 }
-?>

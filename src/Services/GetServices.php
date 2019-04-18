@@ -1,28 +1,20 @@
 <?php
 
-/**
- * @file
- * Contains Drupal\simple_node_importer\GetContentTypes.
- *
- * This class is tied into Drupal's config, but it doesn't have to be.
- *
- */
-
 namespace Drupal\simple_node_importer\Services;
+
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Core\Url;
+use Drupal\file\Entity\File;
+use Drupal\node\Entity\NodeType;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Core\Datetime;
 use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\taxonomy\Entity\Term;
 use Drupal\user\Entity\User;
-use Drupal\file\Entity\File;
 
 /**
- * Class WatchCartoons.
- *
- * @package Drupal\nettv
+ * {@inheritdoc}
  */
 class GetServices {
 
@@ -31,50 +23,52 @@ class GetServices {
    *
    * @var Drupal\Core\Config\ConfigFactory
    */
-  protected $config_factory;
+  protected $configFactory;
+
   /**
    * Constructor.
+   *
+   * @param Drupal\Core\Config\ConfigFactory $configFactory
+   *   Constructs a Drupal\Core\Config\ConfigFactory object.
    */
-  public function __construct(ConfigFactory $config_factory) {
-    $this->config_factory = $config_factory;
+  public function __construct(ConfigFactory $configFactory) {
+    $this->configFactory = $configFactory;
   }
-  
+
   /**
-   * In this method we are using the Drupal config service to
-   * load the variables. Similar to Drupal 7 variable_get().
-   * It also uses the new l() function and the Url object from core.
-   * At the end of the day, we are just returning a string.
-   * This could be refactored to use a Twig template in a future tutorial.
+   * {@inheritdoc}
    */
   public function getContentTypeList() {
-  	$nodeTypes = \Drupal\node\Entity\NodeType::loadMultiple();
+    $nodeTypes = NodeType::loadMultiple();
     foreach ($nodeTypes as $key => $value) {
       $content_types[$key] = $value->get('name');
     }
 
-    if (isset($content_types['simple_node'])){
-      unset($content_types['simple_node']);      
+    if (isset($content_types['simple_node'])) {
+      unset($content_types['simple_node']);
     }
 
     return $content_types;
   }
-  
-  public function snp_select_create_csv($entity_type, $content_type) {
-    $csv = array();
+
+  /**
+   * {@inheritdoc}
+   */
+  public function snpSelectCreateCsv($entity_type, $content_type) {
+    $csv = [];
     $type = 'csv';
-    if($entity_type == 'taxonomy'){
-      $csv = ['Vocabolary','Term1','Term2','Term3','Term4'];
+    if ($entity_type == 'taxonomy') {
+      $csv = ['Vocabolary', 'Term1', 'Term2', 'Term3', 'Term4'];
       $filename = $entity_type . '_template.csv';
     }
-    else{
-      $labelarray = $this->snp_get_field_list($entity_type,$content_type, $type);
-      foreach ($labelarray as $key => $value) {
-        $csv[] =  $value;
+    else {
+      $labelarray = $this->snpGetFieldList($entity_type, $content_type, $type);
+      foreach ($labelarray as $value) {
+        $csv[] = $value;
       }
       $filename = $content_type . '_template.csv';
     }
 
-  
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header('Content-Description: File Transfer');
     header("Content-type: text/csv");
@@ -82,61 +76,35 @@ class GetServices {
     header("Expires: 0");
     header("Pragma: public");
     $fh = @fopen('php://output', 'w');
-  
+
     // Put the data into the stream.
     fputcsv($fh, $csv);
     fclose($fh);
     // Make sure nothing else is sent, our file is done.
     exit;
   }
-  
-  public function checkAvailablity($nodeType = 'simple_node'){
-    $nodeTypes = \Drupal\node\Entity\NodeType::loadMultiple();
+
+  /**
+   * {@inheritdoc}
+   */
+  public function checkAvailablity($nodeType = 'simple_node') {
+    $nodeTypes = NodeType::loadMultiple();
     foreach ($nodeTypes as $key => $value) {
       $content_types[$key] = $value->get('name');
     }
 
-    if (isset($content_types['simple_node'])){
-      return TRUE;      
+    if (isset($content_types['simple_node'])) {
+      return TRUE;
     }
-    else{
-      return FALSE;      
+    else {
+      return FALSE;
     }
   }
 
-  public function create_simple_node_import_table($form) {
-    // Table header information.
-    $form = $form['mapping_form'];
-      $tableheader = array(
-        array('data' => t('Content type Field(s)')),
-        array('data' => t('CSV Column(s)')),
-      );
-      // A variable to hold the row information for each table row.
-      $rows = array();
-      foreach (\Drupal\Core\Render\Element::children($form) as $element_key) {
-        $title = '';
-        // Hide field labels.
-        $form[$element_key]['#title_display'] = 'invisible';
-        if (isset($form[$element_key]['#title'])) {
-          $title = ($form[$element_key]['#required']) ? $form[$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
-        }
-        $rows[] = array(
-          'data' => array(
-            array(
-              'data' => $title,
-              'class' => 'field-title',
-            ),
-            array(
-              'data' => render($form[$element_key]),
-              'class' => 'field-value',
-            ),
-          ),
-        );
-      }
-    return $tableparameters = array($rows,$tableheader);
-  }
-
-  public function simple_node_importer_getallcolumnheaders($fileuri) {
+  /**
+   * {@inheritdoc}
+   */
+  public function simpleNodeImporterGetAllColumnHeaders($fileuri) {
     $handle = fopen($fileuri, 'r');
     $row = fgetcsv($handle);
     foreach ($row as $value) {
@@ -146,14 +114,17 @@ class GetServices {
     }
     return $column;
   }
-  
-  public function snp_get_field_list($entity_type = 'node', $content_type = '', $type = NULL) {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function snpGetFieldList($entity_type = 'node', $content_type = '', $type = NULL) {
 
     if (!empty($content_type)) {
 
-      $fieldsManager = $this->snp_get_fields_definition($entity_type, $content_type);
-      
-      $fieldsArr = $this->snp_getFields($fieldsManager, $type, $entity_type);
+      $fieldsManager = $this->snpGetFieldsDefinition($entity_type, $content_type);
+
+      $fieldsArr = $this->snpGetFields($fieldsManager, $type, $entity_type);
 
       return $fieldsArr;
     }
@@ -162,76 +133,86 @@ class GetServices {
     }
   }
 
-  public function simple_node_importer_createTaxonomy($nid){
+  /**
+   * {@inheritdoc}
+   */
+  public function simpleNodeImporterCreateTaxonomy($nid) {
     $node = Node::load($nid);
     $fid = $node->get('field_upload_csv')->getValue()[0]['target_id'];
-    $file = \Drupal\file\Entity\File::load($fid);
+    $file = File::load($fid);
     $uri = $file->getFileUri();
-    $url = \Drupal\Core\Url::fromUri(file_create_url($uri))->toString();
+    $url = Url::fromUri(file_create_url($uri))->toString();
     $handle = fopen($url, 'r');
-    while($row = fgetcsv($handle)){
-      for($i = 0;$i <=sizeof($row)-1;$i++){
+    while ($row = fgetcsv($handle)) {
+      for ($i = 0; $i <= count($row) - 1; $i++) {
+        
         $name = $row[$i];
-        if(empty($name)){
-          continue;
+        
+        if (empty($name)) {
+          break;
         }
-        if($i == 0){
+        
+        if ($i == 0) {
           $vid = strtolower(preg_replace('/\s+/', '_', $name));
-          $vocabularies = \Drupal\taxonomy\Entity\Vocabulary::loadMultiple();
-          if (!isset($vocabularies[$vid])){
-            $vocabulary = \Drupal\taxonomy\Entity\Vocabulary::create(array(
+          $vocabularies = Vocabulary::loadMultiple();
+          if (!isset($vocabularies[$vid])) {
+            $vocabulary = Vocabulary::create([
               'vid' => $vid,
               'description' => '',
               'name' => $name,
-              ));
-              $vocabulary->save();
+            ]);
+            $vocabulary->save();
           }
         }
-        else{
+        else {
           $termArray = [
             'name' => $name,
-            'vid' => $vid
-            ];
+            'vid' => $vid,
+          ];
           $termid = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
-          if($i == 1){
-            if(empty($termid)){
-		          $term = Term::create($termArray)->save();
-	          }             
+          if ($i == 1) {
+            if (empty($termid)) {
+              Term::create($termArray)->save();
+            }
           }
-          else{
-            $parent = $row[$i-1];
+          else {
+            $parent = $row[$i - 1];
             $termArray = [
               'name' => $parent,
-              'vid' => $vid
-              ];
+              'vid' => $vid,
+            ];
             $termexist = 0;
             $parenttermid = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
             $childterms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadChildren(key($parenttermid));
-            foreach($childterms as $childterm){
-              if($childterm->getName() == $name){
-                  $termexist = 1;
+            foreach ($childterms as $childterm) {
+              if ($childterm->getName() == $name) {
+                $termexist = 1;
               }
             }
-            if($termexist == 0){
-              if(!empty($parenttermid )) {
-		            $term = Term::create(array(
+            if ($termexist == 0) {
+              if (!empty($parenttermid)) {
+                Term::create([
                   'parent' => key($parenttermid),
                   'name' => $name,
                   'vid' => $vid,
-                  ))->save();
-	            }
+                ])->save();
+              }
             }
           }
         }
       }
     }
-    drupal_set_message('Taxonomies are created successfully');
+    drupal_set_message($this->t('Taxonomies are created successfully'));
   }
-  public function simple_node_importer_getpreselectedvalues($form, $headers) {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function simpleNodeImporterGetPreSelectedValues($form, $headers) {
     foreach ($form['mapping_form'] as $field => $attributes) {
-      if(is_array($attributes)){
-        foreach($attributes['#options'] as $key => $value){
-          if(array_key_exists($key, $headers) && $headers[$key] == $attributes['#title']){
+      if (is_array($attributes)) {
+        foreach ($attributes['#options'] as $key => $value) {
+          if (array_key_exists($key, $headers) && $headers[$key] == $attributes['#title']) {
             $form['mapping_form'][$field]['#default_value'] = $key;
           }
         }
@@ -240,89 +221,103 @@ class GetServices {
     return $form;
   }
 
-  public function snp_get_fields_definition($entity_type = 'node', $content_type = ''){
+  /**
+   * {@inheritdoc}
+   */
+  public function snpGetFieldsDefinition($entity_type = 'node', $content_type = '') {
     $entityManager = \Drupal::service('entity_field.manager');
     $fieldsManager = $entityManager->getFieldDefinitions($entity_type, $content_type);
     return $fieldsManager;
   }
 
-  public function snp_getFields($fieldsManager, $type, $entity_type = NULL){
-   if($entity_type == 'node'){
-    $defaultFieldArr = ['title', 'body', 'status', 'uid'];
-   }
-    else{
-    $defaultFieldArr = [ 'name', 'mail', 'status', 'roles', 'user_picture'];
+  /**
+   * {@inheritdoc}
+   */
+  public function snpGetFields($fieldsManager, $type, $entity_type = NULL) {
+    if ($entity_type == 'node') {
+      $defaultFieldArr = ['title', 'body', 'status', 'uid'];
+    }
+    else {
+      $defaultFieldArr = ['name', 'mail', 'status', 'roles', 'user_picture'];
     }
     $haystack = 'field_';
-      foreach ($fieldsManager as $key  => $field ){
-        if(in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE){
-          if($type == 'csv'){
-            if(method_exists ($field->getLabel() , 'render')){
-              $fieldsArr[$key] = $field->getLabel()->render();          
-            }
-            else{
-              $fieldsArr[$key] = $field->getLabel();
-            }
+    foreach ($fieldsManager as $key => $field) {
+      if (in_array($key, $defaultFieldArr) || strpos($key, $haystack) !== FALSE) {
+        if ($type == 'csv') {
+          if (method_exists($field->getLabel(), 'render')) {
+            $fieldsArr[$key] = $field->getLabel()->render();
           }
-          else if($type == 'import'){
-            //fetch the list of required fields.
-            if($fieldsManager[$key]->isRequired()){
-              $fieldsArr['required'][$key] = $key;
-            }
-
-            //fetch the list of multivalued fields.
-            if (!in_array($key, $defaultFieldArr)){
-              $FieldStorageConfig = \Drupal\field\Entity\FieldStorageConfig::loadByName($entity_type, $key);
-              if($FieldStorageConfig->getCardinality() === -1 || $FieldStorageConfig->getCardinality() > 1){
-                $fieldsArr['multivalued'][$key] = $key;
-              }
-            }   
-          }
-          else if($type == 'mapping'){
-            $fieldsArr[$key] = $field;
+          else {
+            $fieldsArr[$key] = $field->getLabel();
           }
         }
+        elseif ($type == 'import') {
+          // Fetch the list of required fields.
+          if ($fieldsManager[$key]->isRequired()) {
+            $fieldsArr['required'][$key] = $key;
+          }
+
+          // Fetch the list of multivalued fields.
+          if (!in_array($key, $defaultFieldArr)) {
+            $fieldStorageConfig = FieldStorageConfig::loadByName($entity_type, $key);
+            if ($fieldStorageConfig->getCardinality() === -1 || $fieldStorageConfig->getCardinality() > 1) {
+              $fieldsArr['multivalued'][$key] = $key;
+            }
+          }
+        }
+        elseif ($type == 'mapping') {
+          $fieldsArr[$key] = $field;
+        }
       }
+    }
     return $fieldsArr;
   }
 
   /**
-  * Checks the widget type of each field.
-  */
+   * Checks the widget type of each field.
+   */
   public function checkFieldWidget($field_names, $data, $node, $entity_type) {
-    $excludeFieldArr = ['name', 'mail','status', 'roles', 'nid','type', 'uid', 'title'];
+    $excludeFieldArr = [
+      'name',
+      'mail',
+      'status',
+      'roles',
+      'nid',
+      'type',
+      'uid',
+      'title',
+    ];
 
     $flag = TRUE;
     foreach ($field_names as $field_machine_name) {
-      if(!in_array($field_machine_name, $excludeFieldArr)){
+      if (!in_array($field_machine_name, $excludeFieldArr)) {
         $field_info = FieldStorageConfig::loadByName($entity_type, $field_machine_name);
         $entityManager = \Drupal::service('entity_field.manager');
         $field_definition = $entityManager->getFieldDefinitions($entity_type, $data['type']);
         $fieldStorageDefinition = $entityManager->getFieldStorageDefinitions($entity_type, $data['type']);
-        
-        if($field_machine_name == 'field_tags'){
+
+        if ($field_machine_name == 'field_tags') {
           $key = key($field_definition[$field_machine_name]->getSetting('handler_settings')['target_bundles']);
         }
-        
-        
+
         $fieldProperties = $field_definition[$field_machine_name];
-        $fieldLabel = $field_info->getLabel();
+        //$fieldLabel = $field_info->getLabel();
         $fieldType = $field_info->getType();
-        $fieldTypeProvider = $field_info->getTypeProvider();
-        $fieldCardinality = $field_info->getCardinality();
+        //$fieldTypeProvider = $field_info->getTypeProvider();
+        //$fieldCardinality = $field_info->getCardinality();
         $fieldIsRequired = $fieldProperties->isRequired();
-        
-        if($fieldType == 'entity_reference'){
+
+        if ($fieldType == 'entity_reference') {
           $fieldSetting = $field_info->getSetting('target_type');
         }
-        else if($fieldType == 'datetime'){
+        elseif ($fieldType == 'datetime') {
           $fieldSetting = $field_info->getSetting('datetime_type');
         }
-        else{
+        else {
           $fieldSetting = NULL;
-        }        
+        }
         $dataValidated = $this->getFieldValidation($fieldType, $data[$field_machine_name], $fieldIsRequired);
-        if ($dataValidated){
+        if ($dataValidated) {
           switch ($fieldType) {
             case 'email':
               $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType);
@@ -332,24 +327,26 @@ class GetServices {
             case 'file':
               $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType);
               break;
+
             case 'entity_reference':
-              if(!empty($data[$field_machine_name])){
+              if (!empty($data[$field_machine_name])) {
                 $preparedData = $this->prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting);
-                if($preparedData === FALSE){
+                if ($preparedData === FALSE) {
                   $flag = FALSE;
                   break;
-                }else{
+                }
+                else {
                   $node[$field_machine_name] = $preparedData;
-                } 
-              }              
+                }
+              }
               break;
+
             case 'text':
             case 'string':
             case 'string_long':
             case 'text_long':
             case 'text_with_summary':
               $node[$field_machine_name] = $this->buildNodeData($data[$field_machine_name], $fieldType);
-              dsm($node[$field_machine_name]);
               break;
 
             case 'boolean':
@@ -358,10 +355,10 @@ class GetServices {
 
             case 'datetime':
               $dateValue = $this->buildNodeData($data[$field_machine_name], $fieldType, $fieldSetting);
-              if($dateValue){
+              if ($dateValue) {
                 $node[$field_machine_name] = $dateValue;
               }
-              else if($dateValue === FALSE){
+              elseif ($dateValue === FALSE) {
                 $flag = FALSE;
                 break;
               }
@@ -381,10 +378,10 @@ class GetServices {
               if (is_array($data[$field_machine_name])) {
                 foreach ($data[$field_machine_name] as $k => $field_value) {
                   $key_value = array_search($field_value, $allowed_values, TRUE);
-                  if($key_value){
+                  if ($key_value) {
                     $node[$field_machine_name][$k]['value'] = $key_value;
                   }
-                  else{
+                  else {
                     $flag = FALSE;
                     break;
                   }
@@ -392,136 +389,147 @@ class GetServices {
               }
               else {
                 $key_value = array_search(strtolower($data[$field_machine_name]), array_map('strtolower', $allowed_values));
-                if($key_value){
+                if ($key_value) {
                   $node[$field_machine_name][0]['value'] = $key_value;
                 }
-                else{
+                else {
                   $flag = FALSE;
                   break;
                 }
-              }              
+              }
               break;
-          }// end of switch case
-
+          }
+          // end of switch case
         }
-        else{
+        else {
           $flag = FALSE;
           break;
-        }        
-      }// end of 1st if   
+        }
+      }// end of 1st if
     }// end of foreach
-    if($flag === FALSE){
-      $node = array();
+    if ($flag === FALSE) {
+      $node = [];
       $node['result'] = $data;
       return $node;
     }
-    else{
+    else {
       return $node;
     }
   }
 
-  public function getUserByEmail($email, $op = NULL){
-    //load user object
-    // $op could be 'new', 'admin', 'current', 'content_validate'
+  /**
+   * {@inheritdoc}
+   */
+  public function getUserByEmail($email, $op = NULL) {
+    // Load user object
+    // $op could be 'new', 'admin', 'current', 'content_validate'.
     $userObj = user_load_by_mail($email);
 
-    if($userObj){
+    if ($userObj) {
       return $userObj;
     }
-    else if($op == 'new'){
+    elseif ($op == 'new') {
       return $this->createNewUser($email);
     }
-    else if($op == 'admin'){
+    elseif ($op == 'admin') {
       $adminUid = 1;
       return $adminUid;
     }
-    else if($op == 'current'){
+    elseif ($op == 'current') {
       $userObj = \Drupal::currentUser();
-      return $userObj; 
+      return $userObj;
     }
-    else if($op == 'content_validate'){
+    elseif ($op == 'content_validate') {
       return NULL;
     }
-    
 
   }
 
-  public function createNewUser(string $email = NULL, string $uname = NULL){
+  /**
+   * {@inheritdoc}
+   */
+  public function createNewUser(string $email = NULL, string $uname = NULL) {
 
-    if(!empty($email)){
+    if (!empty($email)) {
       $today = date('dmy');
       $username = explode('@', $email);
       $userId = $this->getUserByUsername($username[0]);
-      if($userId && is_integer($userId)){
-        $uname = $username.$today;
+      if ($userId && is_int($userId)) {
+        $uname = $username . $today;
       }
-      else{
+      else {
         $uname = $username;
       }
     }
-    else if(!empty($uname)){
+    elseif (!empty($uname)) {
       $email = '';
-    }    
+    }
 
     $user = User::create([
 
-      'name' => $uname,    
+      'name' => $uname,
 
       'mail' => $email,
 
-      'pass' => user_password($length = 10),
+      'pass' => user_password(10),
 
       'status' => 1,
 
-      'roles'  => ['authenticated']
+      'roles'  => ['authenticated'],
 
     ]);
 
-    return $user->save();    
+    return $user->save();
   }
 
-  public function getUserByUsername(string $uname, $op = NULL){
+  /**
+   * {@inheritdoc}
+   */
+  public function getUserByUsername(string $uname, $op = NULL) {
 
-    // $op could be 'new', 'admin', 'current', 'content_validate'
+    // $op could be 'new', 'admin', 'current', 'content_validate'.
     $userId = \Drupal::entityQuery('user')
-        ->condition('name', $uname)
-        ->range(0, 1)
-        ->execute();
+      ->condition('name', $uname)
+      ->range(0, 1)
+      ->execute();
 
-    if(!empty($userId)){
+    if (!empty($userId)) {
       return key($userId);
     }
-    else if($op == 'new'){
+    elseif ($op == 'new') {
       return $this->createNewUser(NULL, $uname);
     }
-    else if($op == 'admin'){
+    elseif ($op == 'admin') {
       $adminUid = 1;
       return $adminUid;
     }
-    else if($op == 'current'){
+    elseif ($op == 'current') {
       $userObj = \Drupal::currentUser();
-      return $userObj; 
+      return $userObj;
     }
-    else if($op == 'content_validate'){
+    elseif ($op == 'content_validate') {
       return NULL;
     }
-    else{
+    else {
       return NULL;
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting) {
-    $handler = $field_definition[$field_machine_name]->getSetting('handler');
+    //$handler = $field_definition[$field_machine_name]->getSetting('handler');
     $flag = TRUE;
     $dataRow = [];
-    if($fieldSetting == 'taxonomy_term'){
+    if ($fieldSetting == 'taxonomy_term') {
       $handler_settings = $field_definition[$field_machine_name]->getSetting('handler_settings');
       $target_bundles = $handler_settings['target_bundles'];
       $vocabulary_name = (is_array($target_bundles) && count($target_bundles) > 1) ? $target_bundles : key($target_bundles);
-      $allw_term = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_add_term');   
-      
-      // code for taxonomy data handling
-      if((is_array($vocabulary_name) && count($vocabulary_name) > 1) || empty($data[$field_machine_name])){
+      $allw_term = \Drupal::config('simple_node_importer.settings')->get('simple_node_importer_allow_add_term');
+
+      // Code for taxonomy data handling.
+      if ((is_array($vocabulary_name) && count($vocabulary_name) > 1) || empty($data[$field_machine_name])) {
         return $flag = FALSE;
       }
       else {
@@ -529,24 +537,24 @@ class GetServices {
         if (is_array($data[$field_machine_name])) {
 
           foreach ($data[$field_machine_name] as $k => $term_name) {
-            if($term_name){
+            if ($term_name) {
               $termArray = [
                 'name' => $term_name,
-                'vid' => $vocabulary_name
+                'vid' => $vocabulary_name,
               ];
-  
+
               $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
               $termKey = key($taxos_obj);
               if (!$taxos_obj && $allw_term) {
-  
-                $term = \Drupal\taxonomy\Entity\Term::create([
-                    'vid' => $vocabulary_name,
-                    'name' => $term_name,
+
+                $term = Term::create([
+                  'vid' => $vocabulary_name,
+                  'name' => $term_name,
                 ]);
-  
+
                 $term->enforceIsNew();
                 $term->save();
-  
+
                 $dataRow[$k]['target_id'] = $term->id();
               }
               else {
@@ -554,22 +562,22 @@ class GetServices {
                 $tid = $termObj->id();
                 $dataRow[$k]['target_id'] = $tid;
               }
-            }            
+            }
           }
         }
         else {
           $termArray = [
-              'name' => $data[$field_machine_name],
-              'vid' => $vocabulary_name
-            ];
-        
+            'name' => $data[$field_machine_name],
+            'vid' => $vocabulary_name,
+          ];
+
           $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
           $termKey = key($taxos_obj);
 
           if (!$taxos_obj && $allw_term) {
-            $term = \Drupal\taxonomy\Entity\Term::create([
-                'vid' => $vocabulary_name,
-                'name' => $data[$field_machine_name],
+            $term = Term::create([
+              'vid' => $vocabulary_name,
+              'name' => $data[$field_machine_name],
             ]);
 
             $term->enforceIsNew();
@@ -578,7 +586,7 @@ class GetServices {
           }
           else {
             $termObj = $taxos_obj[$termKey];
-            $tid = $termObj->id(); 
+            $tid = $termObj->id();
             $dataRow[0]['target_id'] = $tid;
           }
         }
@@ -586,48 +594,50 @@ class GetServices {
       return $dataRow;
     }
 
-    if ($fieldSetting == 'user'){
+    if ($fieldSetting == 'user') {
       $userEmail = $data[$field_machine_name];
-      if(is_array($userEmail)){
-        foreach($userEmail as $email){
-          if($email){
+      if (is_array($userEmail)) {
+        foreach ($userEmail as $email) {
+          if ($email) {
             $flag = $this->getFieldValidation('email', $email);
-            if($flag){
+            if ($flag) {
               $user = $this->getUserByEmail($email, 'content_validate');
-              if($user && !is_integer($user)){
+              if ($user && !is_int($user)) {
                 $dataRow[] = $user->id();
               }
-              else{
+              else {
                 return $flag = FALSE;
               }
-            }else{
+            }
+            else {
               $uid = $this->getUserByUsername($email, 'content_validate');
-              if($uid){
+              if ($uid) {
                 $dataRow[] = $uid;
               }
-              else{
+              else {
                 return $flag = FALSE;
               }
             }
           }
         }
       }
-      else if($userEmail){
-       $flag = $this->getFieldValidation('email', $userEmail);
-        if($flag){
+      elseif ($userEmail) {
+        $flag = $this->getFieldValidation('email', $userEmail);
+        if ($flag) {
           $user = $this->getUserByEmail($userEmail, 'content_validate');
-          if($user && !is_integer($user)){
+          if ($user && !is_int($user)) {
             $dataRow = $user->id();
           }
-          else{
+          else {
             return $flag = FALSE;
           }
-        }else{
+        }
+        else {
           $uid = $this->getUserByUsername($userEmail, 'content_validate');
-          if($uid){
+          if ($uid) {
             $dataRow = $uid;
           }
-          else{
+          else {
             return $flag = FALSE;
           }
         }
@@ -636,71 +646,75 @@ class GetServices {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getFieldValidation($fieldType, $field_data, $fieldIsRequired = FALSE) {
     $flag = TRUE;
-    $k = 0;
-    if(is_array($field_data) && $fieldIsRequired == TRUE){
-      foreach($field_data as $key => $fieldVal){
-          $flags[$key] = empty($fieldVal) ? FALSE : TRUE;
-        }
+    //$k = 0;
+    if (is_array($field_data) && $fieldIsRequired == TRUE) {
+      foreach ($field_data as $key => $fieldVal) {
+        $flags[$key] = empty($fieldVal) ? FALSE : TRUE;
+      }
 
-        if(!in_array(TRUE, $flags)){
-          return $flag = FALSE;
-        }
+      if (!in_array(TRUE, $flags)) {
+        return $flag = FALSE;
+      }
     }
 
     if (empty($field_data) && $fieldIsRequired == TRUE) {
       return $flag = FALSE;
     }
-    else if (!empty($field_data)){
-      switch($fieldType) {
+    elseif (!empty($field_data)) {
+      switch ($fieldType) {
         case 'email':
           $flg = 0;
-          if (is_array($field_data)){
-            foreach($field_data as $fieldData){
-              if(!empty($fieldData) && filter_var($fieldData, FILTER_VALIDATE_EMAIL) != False){
+          if (is_array($field_data)) {
+            foreach ($field_data as $fieldData) {
+              if (!empty($fieldData) && filter_var($fieldData, FILTER_VALIDATE_EMAIL) != FALSE) {
                 $flg = 1;
               }
-              else if(!empty($fieldData)){
+              elseif (!empty($fieldData)) {
                 return $flag = FALSE;
               }
             }
-            $flag = (($flg == 0) && $fieldIsRequired == TRUE) ?  FALSE : TRUE;             
+            $flag = (($flg == 0) && $fieldIsRequired == TRUE) ? FALSE : TRUE;
           }
-          else{
-            if(!empty($field_data) && filter_var($field_data, FILTER_VALIDATE_EMAIL) != False){
+          else {
+            if (!empty($field_data) && filter_var($field_data, FILTER_VALIDATE_EMAIL) != FALSE) {
               $flag = TRUE;
             }
-            else if(empty($field_data) && $fieldIsRequired == FALSE){
+            elseif (empty($field_data) && $fieldIsRequired == FALSE) {
               $flag = TRUE;
             }
-            else{
+            else {
               $flag = FALSE;
             }
           }
           break;
+
         case 'image':
         case 'link':
-        $flg = 0;
-        if (is_array($field_data)){
-          foreach($field_data as $fieldData){
-            if(!empty($fieldData) && filter_var($fieldData, FILTER_VALIDATE_URL) != False){
-              $flg = 1;
+          $flg = 0;
+          if (is_array($field_data)) {
+            foreach ($field_data as $fieldData) {
+              if (!empty($fieldData) && filter_var($fieldData, FILTER_VALIDATE_URL) != FALSE) {
+                $flg = 1;
+              }
+              elseif (!empty($fieldData)) {
+                return $flag = FALSE;
+              }
             }
-            else if(!empty($fieldData)){
-              return $flag = FALSE;
-            }
+            $flag = (($flg == 0) && $fieldIsRequired == TRUE) ? FALSE : TRUE;
           }
-          $flag = (($flg == 0) && $fieldIsRequired == TRUE) ?  FALSE : TRUE;             
-        }
-          else{
-            if(!empty($field_data) && filter_var($field_data, FILTER_VALIDATE_URL) != False){
+          else {
+            if (!empty($field_data) && filter_var($field_data, FILTER_VALIDATE_URL) != FALSE) {
               $flag = TRUE;
             }
-            else if(empty($field_data) && $fieldIsRequired == FALSE){
+            elseif (empty($field_data) && $fieldIsRequired == FALSE) {
               $flag = TRUE;
             }
-            else{
+            else {
               $flag = FALSE;
             }
           }
@@ -710,75 +724,77 @@ class GetServices {
     return $flag;
   }
 
-  public function buildNodeData($data, $fieldType, $fieldSetting = NULL){
+  /**
+   * {@inheritdoc}
+   */
+  public function buildNodeData($data, $fieldType, $fieldSetting = NULL) {
     $i = 0;
     $fieldTypes = ['number_integer', 'number_float'];
     $textFieldTypes = ['string_long', 'string'];
-    $Dateformat = ($fieldSetting == 'datetime') ? 'Y-m-d\TH:i:s' : 'Y-m-d';
+    //$dateformat = ($fieldSetting == 'datetime') ? 'Y-m-d\TH:i:s' : 'Y-m-d';
     $dataRow = [];
-    
 
     if (is_array($data) && !empty($data)) {
       foreach ($data as $value) {
-        if(in_array($fieldType, ['image','file'])){
-          // code for image/file field..
+        if (in_array($fieldType, ['image', 'file'])) {
+          // Code for image/file field..
           $file = system_retrieve_file($value, NULL, TRUE, FILE_EXISTS_REPLACE);
           $dataRow[$i]['target_id'] = !empty($file) ? $file->id() : NULL;
         }
-        else if($fieldType == 'datetime'){
-          if(!empty($value)){
-            if($this->validateDateExpression($value)){
+        elseif ($fieldType == 'datetime') {
+          if (!empty($value)) {
+            if ($this->validateDateExpression($value)) {
               $dataRow[$i]['value'] = ($fieldSetting == 'datetime') ? date_format(date_create($value), 'Y-m-d\TH:i:s') : date_format(date_create($value), 'Y-m-d');
             }
-            else{
+            else {
               return FALSE;
             }
           }
         }
-        else if(in_array($fieldType, $fieldTypes)){
+        elseif (in_array($fieldType, $fieldTypes)) {
           $dataRow[$i]['value'] = $value;
         }
-        else if($fieldType == 'link'){
+        elseif ($fieldType == 'link') {
           $dataRow[$i]['uri'] = $value;
         }
-        else if(in_array($fieldType, $textFieldTypes)){
+        elseif (in_array($fieldType, $textFieldTypes)) {
           $dataRow[$i]['value'] = utf8_encode(trim($value));
         }
-        else{
+        else {
           // code...
           $dataRow[$i] = trim($value);
-        }        
+        }
         $i++;
       }
-      
+
     }
-    else if(!empty($data)) {
-      if(in_array($fieldType, ['image','file'])){
-        // code for image/file field..
+    elseif (!empty($data)) {
+      if (in_array($fieldType, ['image', 'file'])) {
+        // Code for image/file field..
         $file = system_retrieve_file($data, NULL, TRUE, FILE_EXISTS_REPLACE);
         $dataRow[0]['target_id'] = !empty($file) ? $file->id() : NULL;
       }
-      else if($fieldType == 'datetime'){
-        if($this->validateDateExpression($data)){
+      elseif ($fieldType == 'datetime') {
+        if ($this->validateDateExpression($data)) {
           $dataRow['value'] = ($fieldSetting == 'datetime') ? date_format(date_create($data), 'Y-m-d\TH:i:s') : date_format(date_create($data), 'Y-m-d');
         }
-        else{
+        else {
           return FALSE;
         }
       }
-      else if(in_array($fieldType, $fieldTypes)){
+      elseif (in_array($fieldType, $fieldTypes)) {
         $dataRow[0]['value'] = $data;
       }
-      else if($fieldType == 'link'){
+      elseif ($fieldType == 'link') {
         $dataRow['uri'] = $data;
       }
-      else if(in_array($fieldType, $textFieldTypes)){
+      elseif (in_array($fieldType, $textFieldTypes)) {
         $dataRow[0]['value'] = utf8_encode(trim($data));
       }
-      else{
+      else {
         // code...
         $dataRow = trim($data);
-      }        
+      }
     }
     return $dataRow;
   }
@@ -792,7 +808,7 @@ class GetServices {
    * @return string
    *   A new string is created with random characters of the desired length.
    */
-  public function generateReference($length = 10) {
+  public function generateReference(int $length = 10) {
     srand();
     $string = "";
     $chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -802,439 +818,457 @@ class GetServices {
     return $string;
   }
 
-  public static function getImageFID($FileUrl){
-    // code for image/file field..
-    $file = system_retrieve_file($FileUrl, NULL, TRUE, FILE_EXISTS_REPLACE);
+  /**
+   * {@inheritdoc}
+   */
+  public static function getImageFid($fileUrl) {
+    // Code for image/file field..
+    $file = system_retrieve_file($fileUrl, NULL, TRUE, FILE_EXISTS_REPLACE);
     $fid = !empty($file) ? $file->id() : NULL;
     return $fid;
   }
 
-  public static function generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundle){
-    $excludeFieldArr = ['type', 'nid', 'uid', 'title', 'reference', 'status', 'name', 'mail', 'roles'];
+  /**
+   * {@inheritdoc}
+   */
+  public static function generateFieldSetValue($fieldKey, $fieldVal, $fieldWidget, $entity_type, $bundle) {
+
+    $excludeFieldArr = [
+      'type',
+      'nid',
+      'uid',
+      'title',
+      'reference',
+      'status',
+      'name',
+      'mail',
+      'roles',
+    ];
+
     $flag = TRUE;
     $key = 0;
-    if(!in_array($fieldKey, $excludeFieldArr)){
-      $getFieldInfo = \Drupal\simple_node_importer\Services\GetServices::getFieldInfo($entity_type, $fieldKey, $bundle);
+    if (!in_array($fieldKey, $excludeFieldArr)) {
+      $getFieldInfo = GetServices::getFieldInfo($entity_type, $fieldKey, $bundle);
       $fieldType = $getFieldInfo['fieldType'];
       $fieldIsRequired = $getFieldInfo['fieldIsRequired'];
       $fieldCardinality = $getFieldInfo['fieldCardinality'];
 
-      if(empty($fieldVal) && $fieldIsRequired){
+      if (empty($fieldVal) && $fieldIsRequired) {
         $fields[] = $fieldKey;
       }
 
       switch ($fieldType) {
         case 'text_with_summary':
-          # code...
-          if($fieldIsRequire && empty($fieldVal)){
+          // code...
+          if ($fieldIsRequired && empty($fieldVal)) {
             $fields[] = $fieldKey;
           }
-          else{
-          $fieldWidget[0]['#default_value'] = $fieldVal;
+          else {
+            $fieldWidget[0]['#default_value'] = $fieldVal;
           }
           break;
-        
+
         case 'list_float':
         case 'list_integer':
         case 'list_string':
-          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
+          if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
             $flag = 0;
             foreach ($fieldVal as $value) {
-              # code...
-              if(!empty($value)){
-              $flag = 1;
-              $fieldWidget['#default_value'][] = $value;
+              // code...
+              if (!empty($value)) {
+                $flag = 1;
+                $fieldWidget['#default_value'][] = $value;
               }
             }
-            if($fieldIsRequire && $flag == 0){
+            if ($fieldIsRequired && $flag == 0) {
               $fields[] = $fieldKey;
             }
           }
-          else if(!empty($fieldVal)){
+          elseif (!empty($fieldVal)) {
             $fieldWidget['#default_value'] = $fieldVal;
           }
-          else if($fieldIsRequired && empty($fieldVal)){
-            $fields[] = $fieldKey; 
+          elseif ($fieldIsRequired && empty($fieldVal)) {
+            $fields[] = $fieldKey;
           }
           break;
 
         case 'boolean':
-          # code...
-          if($fieldIsRequire && empty($fieldVal)){
+          // code...
+          if ($fieldIsRequired && empty($fieldVal)) {
             $fields[] = $fieldKey;
           }
-          else{
-          $fieldWidget['value']['#default_value'] = $fieldVal;
+          else {
+            $fieldWidget['value']['#default_value'] = $fieldVal;
           }
           break;
 
         case 'entity_reference':
-          # code...
-          if($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']){
-            $target_bundle = Key($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']);
+          // code...
+          if ($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']) {
+            $target_bundle = key($fieldWidget[0]['target_id']['#selection_settings']['target_bundles']);
           }
-          else{
+          else {
             $target_bundle = '';
           }
-          $target_type = $fieldWidget[0]['target_id']['#target_type'];       
+          $target_type = $fieldWidget[0]['target_id']['#target_type'];
 
-          if($target_type == "taxonomy_term"){
-            $flag =0;
-            if(is_array($fieldVal) && !empty($fieldVal)){
+          if ($target_type == "taxonomy_term") {
+            $flag = 0;
+            if (is_array($fieldVal) && !empty($fieldVal)) {
               foreach ($fieldVal as $termName) {
-                if($termName){
-                  # code...
+                if ($termName) {
+                  // code...
                   $flag = 1;
                   $termArray = [
                     'name' => $termName,
-                    'vid' => $target_bundle
+                    'vid' => $target_bundle,
                   ];
 
                   $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
                   $refObject[] = key($taxos_obj);
                 }
               }
-              if($flag == 0 && $fieldIsRequired){
+              if ($flag == 0 && $fieldIsRequired) {
                 $fields[] = $fieldKey;
               }
             }
-            else if(!empty($fieldVal)){
-              # code...
+            elseif (!empty($fieldVal)) {
+              // code...
               $termArray = [
                 'name' => $fieldVal,
-                'vid' => $target_bundle
+                'vid' => $target_bundle,
               ];
 
               $taxos_obj = \Drupal::entityManager()->getStorage('taxonomy_term')->loadByProperties($termArray);
               $refObject = key($taxos_obj);
             }
-            else if($fieldIsRequired && empty($refObject)){
+            elseif ($fieldIsRequired && empty($refObject)) {
               $fields[] = $fieldKey;
-            } 
-            // if(empty($refObject)){
-            //   $fields[] = $fieldKey;
-            // }           
+            }
           }
-          else if($target_type == "user"){          
-            $flag = 0;  
-            if(is_array($fieldVal) && !empty($fieldVal)){
+          elseif ($target_type == "user") {
+            $flag = 0;
+            if (is_array($fieldVal) && !empty($fieldVal)) {
               foreach ($fieldVal as $userData) {
-                if(filter_var($userData, FILTER_VALIDATE_EMAIL) && !empty($userData)){ 
-                   # code...
+                if (filter_var($userData, FILTER_VALIDATE_EMAIL) && !empty($userData)) {
+                  // code...
                   $user = user_load_by_mail($userData);
-                  if(!empty($user)){
+                  if (!empty($user)) {
                     $userObject[] = $user->id();
                     $flag = 1;
                   }
                 }
-                else if(!empty($userData)){
+                elseif (!empty($userData)) {
                   $user = user_load_by_name($userData);
-                  if(!empty($user)){
+                  if (!empty($user)) {
                     $userObject[] = $user->id();
                     $flag = 1;
                   }
                 }
-                else{
+                else {
                   $fields[] = $fieldKey;
-                }         
+                }
               }
-              if($flag == 0 && $fieldIsRequire){
+              if ($flag == 0 && $fieldIsRequired) {
                 $fields[] = $fieldKey;
               }
             }
-            else if(!empty($fieldVal)){
-              if(filter_var($fieldVal, FILTER_VALIDATE_EMAIL)){
-                # code...
+            elseif (!empty($fieldVal)) {
+              if (filter_var($fieldVal, FILTER_VALIDATE_EMAIL)) {
+                // code...
                 $user = user_load_by_mail($fieldVal);
-                if(!empty($user)){
+                if (!empty($user)) {
                   $userObject = $user->id();
                 }
               }
-              else{
+              else {
                 $user = user_load_by_name($fieldVal);
-                if($user != FALSE){
+                if ($user != FALSE) {
                   $userObject[] = $user->id();
                 }
-                else{
-                  $fields[] = $fieldKey;   
+                else {
+                  $fields[] = $fieldKey;
                 }
               }
             }
-            if($fieldIsRequire && !empty($fieldVal)){
-              $fields[] = $fieldKey;           
+            if ($fieldIsRequired && !empty($fieldVal)) {
+              $fields[] = $fieldKey;
             }
-          }
-      
-          if(!empty($refObject) && ($fieldCardinality == -1 || $fieldCardinality > 1) && $target_type == "taxonomy_term"){
-            foreach ($refObject as $refVal) {
-              # code...
-              $fieldWidget[$key] = $fieldWidget[0];
-              $fieldWidget[$key++]['target_id']['#default_value'] = \Drupal\taxonomy\Entity\Term::load($refVal);
-            }
-          }else if(!empty($refObject)){
-            $fieldWidget[0]['target_id']['#default_value'] = \Drupal\taxonomy\Entity\Term::load($refObject);
           }
 
-          if(!empty($userObject) && ($fieldCardinality == -1 || $fieldCardinality > 1) && $target_type == "user"){
-            foreach ($userObject as $userVal) {
-              # code...
+          if (!empty($refObject) && ($fieldCardinality == -1 || $fieldCardinality > 1) && $target_type == "taxonomy_term") {
+            foreach ($refObject as $refVal) {
+              // code...
               $fieldWidget[$key] = $fieldWidget[0];
-              $fieldWidget[$key++]['target_id']['#default_value'] = \Drupal\user\Entity\User::load($userVal);
+              $fieldWidget[$key++]['target_id']['#default_value'] = Term::load($refVal);
             }
-          }else if(!empty($userObject)){
-            $fieldWidget[0]['target_id']['#default_value'] = \Drupal\user\Entity\User::load($userObject);
+          }
+          elseif (!empty($refObject)) {
+            $fieldWidget[0]['target_id']['#default_value'] = Term::load($refObject);
+          }
+
+          if (!empty($userObject) && ($fieldCardinality == -1 || $fieldCardinality > 1) && $target_type == "user") {
+            foreach ($userObject as $userVal) {
+              // code...
+              $fieldWidget[$key] = $fieldWidget[0];
+              $fieldWidget[$key++]['target_id']['#default_value'] = User::load($userVal);
+            }
+          }
+          elseif (!empty($userObject)) {
+            $fieldWidget[0]['target_id']['#default_value'] = User::load($userObject);
           }
           break;
 
         case 'datetime':
-          # code...
+          // code...
           $dateFormat = $fieldWidget[0]['value']['#date_date_format'];
           $timeFormat = $fieldWidget[0]['value']['#date_time_format'];
-          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
+          if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
             $flag = 0;
             foreach ($fieldVal as $date) {
-              if(!empty($date)){
-                if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($date) && !empty($dateFormat) && !empty($timeFormat)){
-                  $date = date_create($date);                
-                  $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
-                  $fieldWidget[0]['value']['#default_value'] = $dateTime;
-                  $flag = 1;
-                }
-                else if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($date) && !empty($dateFormat) && empty($timeFormat)){
+              if (!empty($date)) {
+                if (GetServices::validateDateExpression($date) && !empty($dateFormat) && !empty($timeFormat)) {
                   $date = date_create($date);
-                  $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+                  $dateTime = DrupalDateTime::createFromDateTime($date);
                   $fieldWidget[0]['value']['#default_value'] = $dateTime;
                   $flag = 1;
                 }
-                else{
+                elseif (GetServices::validateDateExpression($date) && !empty($dateFormat) && empty($timeFormat)) {
+                  $date = date_create($date);
+                  $dateTime = DrupalDateTime::createFromDateTime($date);
+                  $fieldWidget[0]['value']['#default_value'] = $dateTime;
+                  $flag = 1;
+                }
+                else {
                   $fields[] = $fieldKey;
                 }
               }
             }
-           
-            if($flag == 0 && $fieldIsRequired){
+
+            if ($flag == 0 && $fieldIsRequired) {
               $fields[] = $fieldKey;
             }
           }
-          else if(!empty($fieldVal)){
-            if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($fieldVal) && !empty($dateFormat) && !empty($timeFormat)){
+          elseif (!empty($fieldVal)) {
+            if (GetServices::validateDateExpression($fieldVal) && !empty($dateFormat) && !empty($timeFormat)) {
               $date = date_create($fieldVal);
-              $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+              $dateTime = DrupalDateTime::createFromDateTime($date);
               $fieldWidget[0]['value']['#default_value'] = $dateTime;
             }
-            else if(\Drupal\simple_node_importer\Services\GetServices::validateDateExpression($fieldVal) && !empty($dateFormat) && empty($timeFormat)){
+            elseif (GetServices::validateDateExpression($fieldVal) && !empty($dateFormat) && empty($timeFormat)) {
               $date = date_create($fieldVal);
-              $dateTime = \Drupal\Core\Datetime\DrupalDateTime::createFromDateTime($date);
+              $dateTime = DrupalDateTime::createFromDateTime($date);
               $fieldWidget[0]['value']['#default_value'] = $dateTime;
             }
-            else{
+            else {
               $fields[] = $fieldKey;
             }
           }
-          else if($flag == 0 && $fieldIsRequired){
+          elseif ($flag == 0 && $fieldIsRequired) {
             $fields[] = $fieldKey;
           }
           break;
 
         case 'string':
-        $flag = 0;
-          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
+          $flag = 0;
+          if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
             foreach ($fieldVal as $value) {
-              # code...
-                if(!empty($value)){
+              // code...
+              if (!empty($value)) {
                 $fieldWidget[$key] = $fieldWidget[0];
                 $fieldWidget[$key++]['value']['#default_value'][] = $value;
-                $flag =1;
+                $flag = 1;
               }
             }
-            if($flag == 0 && $fieldIsRequired){
+            if ($flag == 0 && $fieldIsRequired) {
               $fields[] = $fieldKey;
             }
           }
-          else if(!empty($fieldVal)){
+          elseif (!empty($fieldVal)) {
             $fieldWidget[0]['value']['#default_value'] = $fieldVal;
           }
-          else if($fieldIsRequired && empty($fieldVal)){
+          elseif ($fieldIsRequired && empty($fieldVal)) {
             $fields[] = $fieldKey;
           }
           break;
 
         case 'file':
         case 'image':
-          # code...
+          // code...
           $flag = 0;
-          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
-              foreach ($fieldVal as $file) {
-                # code...
-                if(!empty($file)){
-                  if(filter_var($file, FILTER_VALIDATE_URL)){
-                    $fid = \Drupal\simple_node_importer\Services\GetServices::getImageFID($file);
-                    if(!empty($fid)){
-                      $fieldWidget[$key] = $fieldWidget[0];
-                      $fieldWidget[$key++]['#default_value']['fids'][] = $fid;
-                      $flag = 1;
-                    } 
-                    else{
-                      $fields[] = $fieldKey;   
-                    }      
+          if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
+            foreach ($fieldVal as $file) {
+              // code...
+              if (!empty($file)) {
+                if (filter_var($file, FILTER_VALIDATE_URL)) {
+                  $fid = GetServices::getImageFid($file);
+                  if (!empty($fid)) {
+                    $fieldWidget[$key] = $fieldWidget[0];
+                    $fieldWidget[$key++]['#default_value']['fids'][] = $fid;
+                    $flag = 1;
                   }
-                  else{
-                    $fields[] = $fieldKey;   
-                  } 
-                }     
+                  else {
+                    $fields[] = $fieldKey;
+                  }
+                }
+                else {
+                  $fields[] = $fieldKey;
+                }
               }
-              if($flag == 0 && $fieldIsRequired){
-                $fields[] = $fieldKey;
-              }
-                             
-          }
-          else if(!empty($fieldVal)){
-            if(filter_var($fieldVal, FILTER_VALIDATE_URL)){
-              $fid = \Drupal\simple_node_importer\Services\GetServices::getImageFID($fieldVal);
-              if(!empty($fid)){
-                $fieldWidget[0]['#default_value']['fids'] = array($fid);
-              }      
             }
-            else{
-                $fields[] = $fieldKey;
-            }      
-          }      
-          else if($fieldIsRequired && empty($fieldVal)){
+            if ($flag == 0 && $fieldIsRequired) {
               $fields[] = $fieldKey;
-          }      
+            }
+
+          }
+          elseif (!empty($fieldVal)) {
+            if (filter_var($fieldVal, FILTER_VALIDATE_URL)) {
+              $fid = GetServices::getImageFid($fieldVal);
+              if (!empty($fid)) {
+                $fieldWidget[0]['#default_value']['fids'] = [$fid];
+              }
+            }
+            else {
+              $fields[] = $fieldKey;
+            }
+          }
+          elseif ($fieldIsRequired && empty($fieldVal)) {
+            $fields[] = $fieldKey;
+          }
           break;
 
         case 'email':
           $flag = 0;
-          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
-            foreach($fieldVal as $email){
-            if($email != ''){  
-                  if(filter_var($email, FILTER_VALIDATE_EMAIL)){
-                    $flag =1;
-                    $fieldWidget[$key] = $fieldWidget[0];
-                    $fieldWidget[$key++]['value']['#default_value'] = $email;
-                  }
-                  else{
-                    $fields[] = $fieldKey;
-                  }
+          if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
+            foreach ($fieldVal as $email) {
+              if ($email != '') {
+                if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                  $flag = 1;
+                  $fieldWidget[$key] = $fieldWidget[0];
+                  $fieldWidget[$key++]['value']['#default_value'] = $email;
                 }
+                else {
+                  $fields[] = $fieldKey;
+                }
+              }
             }
-            if($flag == 0 && $fieldIsRequired){
+            if ($flag == 0 && $fieldIsRequired) {
               $fields[] = $fieldKey;
             }
-            
+
           }
-          else if(!empty($fieldVal)){
-            if(filter_var($fieldVal, FILTER_VALIDATE_EMAIL)){
-              #code..
+          elseif (!empty($fieldVal)) {
+            if (filter_var($fieldVal, FILTER_VALIDATE_EMAIL)) {
+              // code..
               $fieldWidget[0]['value']['#default_value'] = $fieldVal;
             }
-            else{
+            else {
               $fields[] = $fieldKey;
             }
-          }         
-          else if($fieldIsRequired && empty($fieldVal)){
+          }
+          elseif ($fieldIsRequired && empty($fieldVal)) {
             $fields[] = $fieldKey;
           }
           break;
 
         case 'link':
-        $flag = 0;
-          if(!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)){
-            foreach($fieldVal as $link){
-              if(filter_var($link, FILTER_VALIDATE_URL)){
-                #code..
-                $flag =1;
+          $flag = 0;
+          if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
+            foreach ($fieldVal as $link) {
+              if (filter_var($link, FILTER_VALIDATE_URL)) {
+                // code..
+                $flag = 1;
                 $fieldWidget[$key] = $fieldWidget[0];
                 $fieldWidget[$key++]['uri']['#default_value'][] = $link;
               }
-              else{
+              else {
                 $fields[] = $fieldKey;
-              }         
+              }
             }
-            if($flag == 0 && $fieldIsRequired){
+            if ($flag == 0 && $fieldIsRequired) {
               $fields[] = $fieldKey;
             }
-            
+
           }
-          else if(!empty($fieldVal)){
-            if(filter_var($fieldVal, FILTER_VALIDATE_URL)){
-              #code..
+          elseif (!empty($fieldVal)) {
+            if (filter_var($fieldVal, FILTER_VALIDATE_URL)) {
+              // code..
               $fieldWidget[0]['uri']['#default_value'] = $fieldVal;
             }
-            else{
+            else {
               $fields[] = $fieldKey;
-            }      
+            }
           }
-         else if($fieldIsRequired && empty($fieldVal)){
-           $fields[] = $fieldKey;
-          }      
+          elseif ($fieldIsRequired && empty($fieldVal)) {
+            $fields[] = $fieldKey;
+          }
           break;
       }
     }
-    else{
-      if($fieldKey == 'title' && !empty($fieldVal)){
+    else {
+      if ($fieldKey == 'title' && !empty($fieldVal)) {
         $fieldWidget[0]['value']['#default_value'] = $fieldVal;
       }
-      else if($fieldKey == 'title' && empty($fieldVal)){
+      elseif ($fieldKey == 'title' && empty($fieldVal)) {
         $fields[] = $fieldKey;
       }
-      // for user bundle type
-      if(in_array($fieldKey, ['name', 'mail', 'roles'])){
-        if($fieldKey == 'name' && empty($fieldVal)){
+      // For user bundle type.
+      if (in_array($fieldKey, ['name', 'mail', 'roles'])) {
+        if ($fieldKey == 'name' && empty($fieldVal)) {
           $fields[] = $fieldKey;
         }
-        else{
+        else {
           $fieldWidget['#default_value'] = $fieldVal;
         }
       }
-      
-      if($fieldKey == 'uid'){
-        if(!empty($fieldVal)){
+
+      if ($fieldKey == 'uid') {
+        if (!empty($fieldVal)) {
           $uname = user_load_by_name($fieldVal);
           $umail = user_load_by_mail($fieldVal);
-          if($uname != FALSE || $umail != FALSE){
+          if ($uname != FALSE || $umail != FALSE) {
             $user = ($uname != FALSE) ? $uname : $umail;
-            $fieldWidget[0]['target_id']['#default_value'] = \Drupal\user\Entity\User::load($user->id());
+            $fieldWidget[0]['target_id']['#default_value'] = User::load($user->id());
           }
-          else{
+          else {
             $fields[] = $fieldKey;
           }
         }
-        else if(empty($fieldVal)){
+        elseif (empty($fieldVal)) {
           $fields[] = $fieldKey;
         }
+      }
     }
-    }
-    
-    if (!empty($fields)){
+
+    if (!empty($fields)) {
       $result['fieldWidget'] = $fieldWidget;
       $result['bugField'] = $fields;
       return $result;
     }
-    else{
+    else {
       return $fieldWidget;
     }
-        
+
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public static function getFieldInfo($entity_type, $fieldKey, $bundle) {
 
-  public static function getFieldInfo($entity_type, $fieldKey, $bundle){
-    
     $field_info = FieldStorageConfig::loadByName($entity_type, $fieldKey);
 
     $entityManager = \Drupal::service('entity_field.manager');
     $field_definition = $entityManager->getFieldDefinitions($entity_type, $bundle);
-    $fieldStorageDefinition = $entityManager->getFieldStorageDefinitions($entity_type, $bundle);
-    
+    //$fieldStorageDefinition = $entityManager->getFieldStorageDefinitions($entity_type, $bundle);
+
     $fieldProperties = $field_definition[$fieldKey];
-  
 
     $fieldLabel = $field_info->getLabel();
     $fieldType = $field_info->getType();
-    
+
     $fieldTypeProvider = $field_info->getTypeProvider();
-    
+
     $fieldCardinality = $field_info->getCardinality();
     $fieldIsRequired = $fieldProperties->isRequired();
 
@@ -1249,23 +1283,29 @@ class GetServices {
     return $fieldInfoArray;
   }
 
-  public function validateDate($date, $format = 'Y-m-d H:i:s'){
-    if($this->validateDateExpression($date)){
+  /**
+   * {@inheritdoc}
+   */
+  public function validateDate($date, $format = 'Y-m-d H:i:s') {
+    if ($this->validateDateExpression($date)) {
       $d = DrupalDateTime::createFromFormat($format, $date);
       return $d && $d->format($format) == $date;
     }
-    else{
+    else {
       return FALSE;
     }
-    
+
   }
 
-  public function validateDateExpression($date){
+  /**
+   * {@inheritdoc}
+   */
+  public function validateDateExpression($date) {
     $regExp = "#^[0-9ampAMP :/-]+$#";
-    if(preg_match($regExp, $date)){
+    if (preg_match($regExp, $date)) {
       return TRUE;
     }
-    else{
+    else {
       return FALSE;
     }
   }

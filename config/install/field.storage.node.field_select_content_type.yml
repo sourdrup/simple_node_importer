@@ -10,7 +10,7 @@ entity_type: node
 type: list_string
 settings:
   allowed_values: {  }
-  allowed_values_function: 'getAllowedContentTypeList'
+  allowed_values_function: 'simple_node_importer_get_allowed_content_type_list'
 module: options
 locked: false
 cardinality: 1
