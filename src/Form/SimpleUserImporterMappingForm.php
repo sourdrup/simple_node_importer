@@ -3,7 +3,6 @@
 namespace Drupal\simple_node_importer\Form;
 
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Drupal\Core\Form\FormBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;

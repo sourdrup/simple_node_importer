@@ -490,11 +490,11 @@ function simple_node_importer_theme_simple_node_import_table($form) {
          "@field" => ucfirst($form['form'][$element_key]['#title']),
          "@formRequired" => "form-required",
          "@title" => "This field is required",
-       ]      
+       ]
       );
       $title = ($form['form'][$element_key]['#required']) ? $requiredTag : ucfirst($form['form'][$element_key]['#title']);
     }
-    
+
     $rows[] = [
       'data' => [
         [

@@ -2,13 +2,11 @@
 
 namespace Drupal\simple_node_importer\Controller;
 
-use Drupal\simple_node_importer\Services\GetServices;
 use Drupal\Component\Render\FormattableMarkup;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\user\Entity\User;
-use Drupal\Core\Link;
 
 /**
  * Default controller for the simple_node_importer module.
@@ -92,7 +90,7 @@ class UserImportController extends ControllerBase {
    */
   public static function userImportBatchFinished($success, $results, $operations) {
     if ($success) {
-      $rclink = Url::fromRoute('simple_node_importer.node_resolution_center',[], ['absolute' => TRUE]);
+      $rclink = Url::fromRoute('simple_node_importer.node_resolution_center', [], ['absolute' => TRUE]);
       $link = $rclink->toString();
 
       $created_count = !empty($results['created']) ? $results['created'] : NULL;
@@ -102,7 +100,7 @@ class UserImportController extends ControllerBase {
         $import_status = new FormattableMarkup("Users registered successfully: @created_count", ['@created_count' => $created_count]);
       }
       elseif (!$created_count && $failed_count) {
-        $import_status =  new FormattableMarkup('Users import failed: @failed_count .To view failed records, please visit <a href="@link">Resolution Center</a>', ['@failed_count' => $failed_count, '@link' => $link]);
+        $import_status = new FormattableMarkup('Users import failed: @failed_count .To view failed records, please visit <a href="@link">Resolution Center</a>', ['@failed_count' => $failed_count, '@link' => $link]);
       }
       else {
         $import_status = new FormattableMarkup('Users registered successfully: @created_count<br/>Users import failed: @failed_count<br/>To view failed records, please visit <a href="@link">Resolution Center</a>',

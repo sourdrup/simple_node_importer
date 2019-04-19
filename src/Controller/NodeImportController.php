@@ -13,7 +13,6 @@ use Drupal\Core\Session\SessionManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 
@@ -134,7 +133,7 @@ class NodeImportController extends ControllerBase {
    */
   public static function nodeImportBatchFinished($success, $results, $operations) {
     if ($success) {
-      $rclink = Url::fromRoute('simple_node_importer.node_resolution_center',[], ['absolute' => TRUE]);
+      $rclink = Url::fromRoute('simple_node_importer.node_resolution_center', [], ['absolute' => TRUE]);
       $link = $rclink->toString();
       $created_count = !empty($results['created']) ? $results['created'] : NULL;
       $failed_count = !empty($results['failed']) ? $results['failed'] : NULL;
@@ -159,7 +158,7 @@ class NodeImportController extends ControllerBase {
         NodeImportController::addFailedRecordsInRc($results);
       }
 
-      //$statusMessage = ;
+      // $statusMessage = ;.
       drupal_set_message(t('Node import completed! Import status:<br/> @import_status', ['@import_status' => $import_status]));
     }
     else {
@@ -275,7 +274,7 @@ class NodeImportController extends ControllerBase {
       // Generate download csv link.
       $generateDownloadLink = Url::fromRoute('simple_node_importer.resolution_center_operations', ['node' => $data->nid, 'op' => 'download-csv'], ['absolute' => TRUE]);
       $csvLink = $generateDownloadLink->toString();
-      
+
       // Generate delete node link.
       $generateDeleteLink = Url::fromRoute('entity.node.delete_form', ['node' => $data->nid], ['absolute' => TRUE]);
       $deleteLink = $generateDeleteLink->toString();
@@ -283,8 +282,8 @@ class NodeImportController extends ControllerBase {
       // Generate view records link.
       $generateViewLink = Url::fromRoute('simple_node_importer.resolution_center_operations', ['node' => $data->nid, 'op' => 'view-records'], ['absolute' => TRUE]);
       $viewLink = $generateViewLink->toString();
-      
-      $operationGenerator = new FormattableMarkup('<a href="@csvLink">Download CSV</a> | <a href="@viewLink">View</a> | <a href="@deleteLink">Delete</a>', 
+
+      $operationGenerator = new FormattableMarkup('<a href="@csvLink">Download CSV</a> | <a href="@viewLink">View</a> | <a href="@deleteLink">Delete</a>',
       [
         "@csvLink" => $csvLink,
         "@viewLink" => $viewLink,

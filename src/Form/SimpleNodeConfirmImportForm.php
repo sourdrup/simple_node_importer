@@ -3,6 +3,7 @@
 namespace Drupal\simple_node_importer\Form;
 
 use Drupal\simple_node_importer\Services\GetServices;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Session\SessionManagerInterface;
@@ -162,9 +163,9 @@ class SimpleNodeConfirmImportForm extends ConfirmFormBase {
    */
   public function getQuestion() {
 
-    $critical_info = "<p class='confirmation-info'>If email id's provided in the 'Authored By' column of your CSV match the existing users in the system, then data will be automatically imported. If not, the users will have to be created before importing the data.</p><p>Do you want to continue?</p>";
+    $critical_info = new FormattableMarkup('<p class="@class">If email id\'s provided in the "Authored By" column of your CSV match the existing users in the system, then data will be automatically imported. If not, the users will have to be created before importing the data.</p><p>Do you want to continue?</p>', ["@class" => "confirmation-info"]);
 
-    return $this->t($critical_info);
+    return $this->t("@critical_info", ["@critical_info" => $critical_info]);
   }
 
   /**

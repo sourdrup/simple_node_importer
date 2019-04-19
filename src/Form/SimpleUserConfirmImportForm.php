@@ -162,9 +162,9 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
    */
   public function getQuestion() {
 
-    $critical_info = "<p class='confirmation-info'></p><p>Do you want to continue?</p>";
+    $critical_info = new FormattableMarkup('<p class="@class"></p><p>Do you want to continue?</p>', ["@class" => "confirmation-info"]);
 
-    return t($critical_info);
+    return $this->t("@critical_info", ["@critical_info" => $critical_info]);
   }
 
   /**
