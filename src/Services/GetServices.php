@@ -202,7 +202,7 @@ class GetServices {
         }
       }
     }
-    drupal_set_message($this->t('Taxonomies are created successfully'));
+    drupal_set_message(t('Taxonomies are created successfully'));
   }
 
   /**
