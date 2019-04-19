@@ -3,6 +3,7 @@
 namespace Drupal\simple_node_importer\Controller;
 
 use Drupal\simple_node_importer\Services\GetServices;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\node\NodeInterface;
 use Drupal\user\Entity\User;
 use Drupal\Core\Database\Database;
@@ -110,7 +111,6 @@ class NodeImportController extends ControllerBase {
         $context['results']['data'][] = serialize($batch_result['result']);
       }
       else {
-        // print_r($batch_result); exit;.
         $node = Node::create($batch_result);
         $node->save();
         if ($node->id()) {
@@ -134,33 +134,37 @@ class NodeImportController extends ControllerBase {
    */
   public static function nodeImportBatchFinished($success, $results, $operations) {
     if ($success) {
-
-      $rclink = Link::fromTextAndUrl(t('Resolution Center'), Url::fromRoute('simple_node_importer.node_resolution_center'))->toString();
-      $link = $rclink->getGeneratedLink();
-
+      $rclink = Url::fromRoute('simple_node_importer.node_resolution_center',[], ['absolute' => TRUE]);
+      $link = $rclink->toString();
       $created_count = !empty($results['created']) ? $results['created'] : NULL;
       $failed_count = !empty($results['failed']) ? $results['failed'] : NULL;
 
       if ($created_count && !$failed_count) {
-        $import_status = t("Nodes successfully created: %created_count", ['%created_count' => $created_count]);
+        $import_status = new FormattableMarkup("Nodes successfully created: @created_count", ['@created_count' => $created_count]);
       }
       elseif (!$created_count && $failed_count) {
-        $import_status = t('Nodes import failed: %failed_count .To view failed records, please visit', ['%failed_count' => $failed_count]) . $link;
+        $import_status = new FormattableMarkup('Nodes import failed: @failed_count. To view failed records, please visit <a href="@link">Resolution Center</a>', ['@failed_count' => $failed_count, '@link' => $link]);
       }
       else {
-        $import_status = t('Nodes successfully created: @created_count.<br/>Nodes import failed: @failed_count.<br/>To view failed records, please visit:', ['@created_count' => $created_count, '@failed_count' => $failed_count]) . $link;
+        $import_status = new FormattableMarkup('Nodes successfully created: @created_count<br/>Nodes import failed: @failed_count<br/>To view failed records, please visit <a href="@link">Resolution Center</a>',
+          [
+            '@created_count' => $created_count,
+            '@failed_count' => $failed_count,
+            '@link' => $link,
+          ]
+        );
       }
       if (isset($results['failed']) && !empty($results['failed'])) {
         // Add Failed nodes to Resolution Table.
         NodeImportController::addFailedRecordsInRc($results);
       }
 
-      $statusMessage = t("Node import completed! Import status:<br/> @import_status", ['@import_status' => $import_status]);
-      drupal_set_message($statusMessage);
+      //$statusMessage = ;
+      drupal_set_message(t('Node import completed! Import status:<br/> @import_status', ['@import_status' => $import_status]));
     }
     else {
       $error_operation = reset($operations);
-      $message = t('An error occurred while processing %error_operation with arguments: @arguments', [
+      $message = new FormattableMarkup('An error occurred while processing %error_operation with arguments: @arguments', [
         '%error_operation' => $error_operation[0],
         '@arguments' => print_r($error_operation[1], TRUE),
       ]);
@@ -269,26 +273,26 @@ class NodeImportController extends ControllerBase {
       $row[] = ['data' => $author];
 
       // Generate download csv link.
-      $generateDownloadLink = Link::fromTextAndUrl($this->t('DownloadCSV'), Url::fromRoute('simple_node_importer.resolution_center_operations', ['node' => $data->nid, 'op' => 'download-csv']))->toString();
-      $csvLink = $generateDownloadLink->getGeneratedLink();
-
+      $generateDownloadLink = Url::fromRoute('simple_node_importer.resolution_center_operations', ['node' => $data->nid, 'op' => 'download-csv'], ['absolute' => TRUE]);
+      $csvLink = $generateDownloadLink->toString();
+      
       // Generate delete node link.
-      $url = Url::fromRoute('entity.node.delete_form', ['node' => $data->nid]);
-      $generateDeleteLink = Link::fromTextAndUrl('Delete', $url)->toString();
-      $deleteLink = $generateDeleteLink->getGeneratedLink();
+      $generateDeleteLink = Url::fromRoute('entity.node.delete_form', ['node' => $data->nid], ['absolute' => TRUE]);
+      $deleteLink = $generateDeleteLink->toString();
 
       // Generate view records link.
-      $generateViewLink = Link::fromTextAndUrl($this->t('View'), Url::fromRoute('simple_node_importer.resolution_center_operations', ['node' => $data->nid, 'op' => 'view-records']))->toString();
-      $viewLink = $generateViewLink->getGeneratedLink();
+      $generateViewLink = Url::fromRoute('simple_node_importer.resolution_center_operations', ['node' => $data->nid, 'op' => 'view-records'], ['absolute' => TRUE]);
+      $viewLink = $generateViewLink->toString();
+      
+      $operationGenerator = new FormattableMarkup('<a href="@csvLink">Download CSV</a> | <a href="@viewLink">View</a> | <a href="@deleteLink">Delete</a>', 
+      [
+        "@csvLink" => $csvLink,
+        "@viewLink" => $viewLink,
+        "@deleteLink" => $deleteLink,
+      ]);
 
       $row[] = [
-        'data' => $this->t("@csvLink . ' | ' . @viewLink . ' | ' . @deleteLink",
-          [
-            "@csvLink" => $csvLink,
-            "@viewLink" => $viewLink,
-            "@deleteLink" => $deleteLink,
-          ]
-        ),
+        'data' => $this->t("@operations", ["@operations" => $operationGenerator]),
       ];
 
       $srno++;
@@ -420,33 +424,35 @@ class NodeImportController extends ControllerBase {
 
         // Generate add node link.
         if ($entityType == 'user') {
-          $generateAddLink = Link::fromTextAndUrl($this->t('Edit & Save'),
-            Url::fromRoute('user.admin_create',
-              [
-                'entity_type' => $entityType,
-                'refkey' => $val['reference'],
-                'bundle' => $val['type'],
-              ]
-            )
-          )->toString();
+          $addLink = Url::fromRoute('user.admin_create',
+            [
+              'entity_type' => $entityType,
+              'refkey' => $val['reference'],
+              'bundle' => $val['type'],
+            ],
+            [
+              'absolute' => TRUE,
+            ]
+          );
+          $generateAddLink = $addLink->toString();
         }
         else {
-          $generateAddLink = Link::fromTextAndUrl($this->t('Edit & Save'),
-            Url::fromRoute('node.add',
-              [
-                'node_type' => $val['type'],
-                'entity_type' => $entityType,
-                'refkey' => $val['reference'],
-                'bundle' => $val['type'],
-              ]
-            )
-          )->toString();
+          $addLink = Url::fromRoute('node.add',
+            [
+              'node_type' => $val['type'],
+              'entity_type' => $entityType,
+              'refkey' => $val['reference'],
+              'bundle' => $val['type'],
+            ],
+            [
+              'absolute' => TRUE,
+            ]
+          );
+          $generateAddLink = $addLink->toString();
         }
 
-        $addLink = $generateAddLink->getGeneratedLink();
-
         $row[] = [
-          'data' => $this->t("@addLink", ["@addLink" => $addLink]),
+          'data' => $this->t('<a href="@addLink">Edit & Save</a>', ["@addLink" => $generateAddLink]),
         ];
 
         $srno++;

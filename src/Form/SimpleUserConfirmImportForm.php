@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\simple_node_importer\Services\GetServices;
 
 /**
  * Defines a confirmation form to confirm deletion of something by id.
@@ -163,7 +164,7 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
 
     $critical_info = "<p class='confirmation-info'></p><p>Do you want to continue?</p>";
 
-    return t("@critical_info", ["@critical_info" => $critical_info]);
+    return t($critical_info);
   }
 
   /**

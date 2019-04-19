@@ -2,6 +2,8 @@
 
 namespace Drupal\simple_node_importer\Controller;
 
+use Drupal\simple_node_importer\Services\GetServices;
+use Drupal\Component\Render\FormattableMarkup;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
@@ -90,25 +92,26 @@ class UserImportController extends ControllerBase {
    */
   public static function userImportBatchFinished($success, $results, $operations) {
     if ($success) {
-      $rclink = Link::fromTextAndUrl(t('Resolution Center'), Url::fromRoute('simple_node_importer.node_resolution_center'))->toString();
-      $link = $rclink->getGeneratedLink();
+      $rclink = Url::fromRoute('simple_node_importer.node_resolution_center',[], ['absolute' => TRUE]);
+      $link = $rclink->toString();
 
       $created_count = !empty($results['created']) ? $results['created'] : NULL;
       $failed_count = !empty($results['failed']) ? $results['failed'] : NULL;
 
       if ($created_count && !$failed_count) {
-        $import_status = t("Users registered successfully: %created_count", ['%created_count' => $created_count]);
+        $import_status = new FormattableMarkup("Users registered successfully: @created_count", ['@created_count' => $created_count]);
       }
       elseif (!$created_count && $failed_count) {
-        $import_status = t('Users import failed: %failed_count .To view failed records, please visit', ['%failed_count' => $failed_count]) . $link;
+        $import_status =  new FormattableMarkup('Users import failed: @failed_count .To view failed records, please visit <a href="@link">Resolution Center</a>', ['@failed_count' => $failed_count, '@link' => $link]);
       }
       else {
-        $import_status = t('Users registered successfully: @created_count.<br/>Users import failed: @failed_count.<br/>To view failed records, please visit:',
+        $import_status = new FormattableMarkup('Users registered successfully: @created_count<br/>Users import failed: @failed_count<br/>To view failed records, please visit <a href="@link">Resolution Center</a>',
           [
             '@created_count' => $created_count,
             '@failed_count' => $failed_count,
+            '@link' => $link,
           ]
-        ) . $link;
+        );
       }
       if (isset($results['failed']) && !empty($results['failed'])) {
         // Add Failed nodes to Resolution Table.

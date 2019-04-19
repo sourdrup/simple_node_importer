@@ -736,7 +736,7 @@ class GetServices {
 
     if (is_array($data) && !empty($data)) {
       foreach ($data as $value) {
-        if (in_array($fieldType, ['image', 'file'])) {
+        if (in_array($fieldType, ['image', 'file']) && !empty($value) && filter_var($value, FILTER_VALIDATE_URL)) {
           // Code for image/file field..
           $file = system_retrieve_file($value, NULL, TRUE, FILE_EXISTS_REPLACE);
           $dataRow[$i]['target_id'] = !empty($file) ? $file->id() : NULL;
@@ -769,7 +769,7 @@ class GetServices {
 
     }
     elseif (!empty($data)) {
-      if (in_array($fieldType, ['image', 'file'])) {
+      if (in_array($fieldType, ['image', 'file']) && !empty($data) && filter_var($data, FILTER_VALIDATE_URL)) {
         // Code for image/file field..
         $file = system_retrieve_file($data, NULL, TRUE, FILE_EXISTS_REPLACE);
         $dataRow[0]['target_id'] = !empty($file) ? $file->id() : NULL;
@@ -1175,28 +1175,21 @@ class GetServices {
           $flag = 0;
           if (!empty($fieldVal) && ($fieldCardinality == -1 || $fieldCardinality > 1) && is_array($fieldVal)) {
             foreach ($fieldVal as $link) {
-              if (filter_var($link, FILTER_VALIDATE_URL)) {
+              if (!empty($link) && filter_var($link, FILTER_VALIDATE_URL)) {
                 // code..
                 $flag = 1;
                 $fieldWidget[$key] = $fieldWidget[0];
                 $fieldWidget[$key++]['uri']['#default_value'][] = $link;
               }
-              else {
-                $fields[] = $fieldKey;
-              }
             }
             if ($flag == 0 && $fieldIsRequired) {
               $fields[] = $fieldKey;
             }
-
           }
           elseif (!empty($fieldVal)) {
-            if (filter_var($fieldVal, FILTER_VALIDATE_URL)) {
+            if (!empty($fieldVal) && filter_var($fieldVal, FILTER_VALIDATE_URL)) {
               // code..
               $fieldWidget[0]['uri']['#default_value'] = $fieldVal;
-            }
-            else {
-              $fields[] = $fieldKey;
             }
           }
           elseif ($fieldIsRequired && empty($fieldVal)) {

@@ -8,6 +8,7 @@
 use Drupal\Core\Render\Element;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Database\Database;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\simple_node_importer\Services\GetServices;
 use Drupal\simple_node_importer\Controller\NodeImportController;
 use Drupal\Core\Form\FormStateInterface;
@@ -484,12 +485,20 @@ function simple_node_importer_theme_simple_node_import_table($form) {
     // Hide field labels.
     $form['form'][$element_key]['#title_display'] = 'invisible';
     if (isset($form['form'][$element_key]['#title'])) {
-      $title = ($form['form'][$element_key]['#required']) ? $form['form'][$element_key]['#title'] . '<span class="form-required" title="This field is required.">*</span>' : $form['form'][$element_key]['#title'];
+      $requiredTag = new FormattableMarkup('@field <span class="@formRequired" title="@title"></span>',
+       [
+         "@field" => ucfirst($form['form'][$element_key]['#title']),
+         "@formRequired" => "form-required",
+         "@title" => "This field is required",
+       ]      
+      );
+      $title = ($form['form'][$element_key]['#required']) ? $requiredTag : ucfirst($form['form'][$element_key]['#title']);
     }
+    
     $rows[] = [
       'data' => [
         [
-          'data' => $title,
+          'data' => t("@title", ["@title" => $title]),
           'class' => 'field-title',
         ],
         [
