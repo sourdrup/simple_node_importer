@@ -12,6 +12,7 @@ use Drupal\node\NodeInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\simple_node_importer\Services\GetServices;
+use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Defines a confirmation form to confirm deletion of something by id.
@@ -84,13 +85,12 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
     $map_fields = array_keys($map_values);
     $i = 1;
     $records = [];
-
     while ($row = fgetcsv($handle)) {
       if ($i == 1) {
         $i++;
         continue;
       }
-
+      
       foreach ($row as $k => $field) {
         $column1 = str_replace(' ', '_', strtolower($columns[$k]));
         foreach ($map_fields as $field_name) {
@@ -98,10 +98,8 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
             $record[$field_name] = trim($field);
           }
           else {
-
             if (is_array($map_values[$field_name])) {
               $multiple_fields = array_keys($map_values[$field_name]);
-
               foreach ($multiple_fields as $j => $m_fields) {
                 if ($m_fields == $column1) {
                   if ($m_fields == 'roles') {

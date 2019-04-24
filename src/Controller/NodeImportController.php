@@ -94,7 +94,6 @@ class NodeImportController extends ControllerBase {
         'uid' => $uid,
         'status' => ($record['status'] == 1 || $record['status'] == TRUE) ? TRUE : FALSE,
       ];
-
       $field_names = array_keys($record);
 
       if (empty($batch_result['result'])) {
@@ -209,7 +208,7 @@ class NodeImportController extends ControllerBase {
   public function viewResolutionCenter() {
     $tableheader = [
       ['data' => $this->t('Sr no')],
-      ['data' => $this->t('Content Type')],
+      ['data' => $this->t('Bundle')],
       [
         'data' => $this->t('Date of import'),
       ],

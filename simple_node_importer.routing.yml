@@ -1,7 +1,7 @@
 simple_node_importer.config_form:
   path: /admin/config/development/snodeimport
   defaults:
-    _title: 'Simple Node Settings'
+    _title: 'Simple Entity Settings'
     _form: \Drupal\simple_node_importer\Form\SimpleNodeImporterConfigForm
   requirements:
     _permission: 'admin access simple_node_importer'
