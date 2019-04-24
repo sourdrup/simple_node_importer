@@ -296,10 +296,6 @@ class GetServices {
         $field_definition = $entityManager->getFieldDefinitions($entity_type, $data['type']);
         $fieldStorageDefinition = $entityManager->getFieldStorageDefinitions($entity_type, $data['type']);
 
-        if ($field_machine_name == 'field_tags') {
-          $key = key($field_definition[$field_machine_name]->getSetting('handler_settings')['target_bundles']);
-        }
-
         $fieldProperties = $field_definition[$field_machine_name];
         $fieldType = $field_info->getType();
         $fieldIsRequired = $fieldProperties->isRequired();
@@ -389,7 +385,7 @@ class GetServices {
                 if ($key_value) {
                   $node[$field_machine_name][0]['value'] = $key_value;
                 }
-                else {
+                elseif (!empty($data[$field_machine_name])) {
                   $flag = FALSE;
                   break;
                 }
