@@ -145,13 +145,13 @@ class GetServices {
     $handle = fopen($url, 'r');
     while ($row = fgetcsv($handle)) {
       for ($i = 0; $i <= count($row) - 1; $i++) {
-        
+
         $name = $row[$i];
-        
+
         if (empty($name)) {
           break;
         }
-        
+
         if ($i == 0) {
           $vid = strtolower(preg_replace('/\s+/', '_', $name));
           $vocabularies = Vocabulary::loadMultiple();
@@ -301,10 +301,7 @@ class GetServices {
         }
 
         $fieldProperties = $field_definition[$field_machine_name];
-        //$fieldLabel = $field_info->getLabel();
         $fieldType = $field_info->getType();
-        //$fieldTypeProvider = $field_info->getTypeProvider();
-        //$fieldCardinality = $field_info->getCardinality();
         $fieldIsRequired = $fieldProperties->isRequired();
 
         if ($fieldType == 'entity_reference') {
@@ -399,7 +396,7 @@ class GetServices {
               }
               break;
           }
-          // end of switch case
+          // End of switch case.
         }
         else {
           $flag = FALSE;
@@ -519,7 +516,6 @@ class GetServices {
    * {@inheritdoc}
    */
   public function prepareEntityReferenceFieldData($field_definition, $field_machine_name, $data, $node, $fieldSetting) {
-    //$handler = $field_definition[$field_machine_name]->getSetting('handler');
     $flag = TRUE;
     $dataRow = [];
     if ($fieldSetting == 'taxonomy_term') {
@@ -651,7 +647,7 @@ class GetServices {
    */
   public function getFieldValidation($fieldType, $field_data, $fieldIsRequired = FALSE) {
     $flag = TRUE;
-    //$k = 0;
+    // $k = 0;.
     if (is_array($field_data) && $fieldIsRequired == TRUE) {
       foreach ($field_data as $key => $fieldVal) {
         $flags[$key] = empty($fieldVal) ? FALSE : TRUE;
@@ -731,7 +727,7 @@ class GetServices {
     $i = 0;
     $fieldTypes = ['number_integer', 'number_float'];
     $textFieldTypes = ['string_long', 'string'];
-    //$dateformat = ($fieldSetting == 'datetime') ? 'Y-m-d\TH:i:s' : 'Y-m-d';
+    // $dateformat = ($fieldSetting == 'datetime') ? 'Y-m-d\TH:i:s' : 'Y-m-d';.
     $dataRow = [];
 
     if (is_array($data) && !empty($data)) {
@@ -1252,8 +1248,6 @@ class GetServices {
 
     $entityManager = \Drupal::service('entity_field.manager');
     $field_definition = $entityManager->getFieldDefinitions($entity_type, $bundle);
-    //$fieldStorageDefinition = $entityManager->getFieldStorageDefinitions($entity_type, $bundle);
-
     $fieldProperties = $field_definition[$fieldKey];
 
     $fieldLabel = $field_info->getLabel();

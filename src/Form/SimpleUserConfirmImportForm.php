@@ -90,7 +90,7 @@ class SimpleUserConfirmImportForm extends ConfirmFormBase {
         $i++;
         continue;
       }
-      
+
       foreach ($row as $k => $field) {
         $column1 = str_replace(' ', '_', strtolower($columns[$k]));
         foreach ($map_fields as $field_name) {
